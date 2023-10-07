@@ -1,0 +1,4 @@
+This is a medium project that is being worked on, the goal is to use multiple classification algorithms 
+to detect whether predict if the client will subscribe a term deposit.
+
+10/7/2023: Finished cleaning and normalizing data. Suggestion to make it a data pipeline
