@@ -20,3 +20,14 @@ This dataset is a synthetic version inspired by the original Credit Risk dataset
 |credit_score | Credit score of the person | Integer|
 |previous_loan_defaults_on_file | Indicator of previous loan defaults | Categorical|
 |loan_status (target variable) | Loan approval status: 1 = approved; 0 = rejected | Integer|
+
+
+## Data Usage
+The dataset can be used for multiple purposes:
+- Exploratory Data Analysis (EDA): Analyze key features, distribution patterns, and relationships to understand credit risk factors.
+- Classification: Build predictive models to classify the loan_status variable (approved/not approved) for potential applicants.
+- Regression: Develop regression models to predict the credit_score variable based on individual and loan-related attributes.
+- Mind the data issue from the original data, such as the instance > 100-year-old as age.
+
+This dataset provides a rich basis for understanding financial risk factors and simulating predictive modeling processes for loan approval and credit scoring.
+
