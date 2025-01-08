@@ -1,0 +1,209 @@
+---
+title: "Data Analysis with Quarto"
+author: "Just1a2Noob"
+format:
+  html:
+    theme: zephyr
+    code-fold: true
+    toc: true
+jupyter: python3
+---
+
+# Introduction
+
+This is a Quarto document analyzing factors that contribute to credit risk. This analysis is mostly used for learning purposes only.
+
+## Setting Up Our Environment
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+df = pd.read_csv("loan_data.csv")
+df.head()
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+df.hist(bins=50, figsize=(20, 15))
+plt.show()
+```
+
+The graphs above gives us graph of all numerical columns in terms of frequency. From a glance we can see that the columns frequency are mostly skewed. 
+
+
+```{python} 
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
+
+# This if for splitting the data
+train_set, test_set = train_test_split(df, test_size=0.2)
+
+# stratified sampling on the target
+stratified_shuffle = StratifiedShuffleSplit(n_splits=1, test_size=0.2)
+for train_index, test_index in stratified_shuffle.split(df, df["loan_status"]):
+    strat_train_set = df.loc[train_index]
+    strat_test_set = df.loc[test_index]
+
+loan_status = strat_train_set.copy()
+```
+
+## Exploratory Data Analysis 
+
+```{python} 
+from pandas.plotting import scatter_matrix
+
+attributes = [
+    "person_age",
+    "person_income",
+    "loan_percent_income",
+    "credit_score",
+    "person_emp_exp",
+    "loan_amnt",
+]
+scatter_matrix(loan_status[attributes], figsize=(12, 8))
+```
+
+The graph above is a correlation matrix shown in terms of graphs. The columns used are age, income, loan percent income, credit score, employment experience, and loan amount. From the graph we can see that multiple graphs are scattered making it hard to find any meaningful patterns just from graphs alone.
+
+
+## Preparing for Data For Machine Learning 
+I am gonna apply both OrdinalEncoder, OneHotEncoder, and StandardScaler to our inputs data set.
+
+```{python} 
+from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, StandardScaler
+
+
+class Convert_Encoder(BaseEstimator, TransformerMixin):
+    # Converts previous_loan_defaults_on_file column to binary
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        enc = OrdinalEncoder(categories=[["No", "Yes"]])
+        X["previous_loan_defaults_on_file"] = enc.fit_transform(
+            X[["previous_loan_defaults_on_file"]]
+        ).astype(int)
+
+        return X
+
+
+class Convert_Categorical(BaseEstimator, TransformerMixin):
+    # Apply OneHotEncoder to every categorical column
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        categorical_columns = [
+            "person_gender",
+            "person_education",
+            "person_home_ownership",
+            "loan_intent",
+        ]
+        ohe = OneHotEncoder()
+
+        for col in categorical_columns:
+            unique_values = X[col].unique()
+            column_names = [str(value) for value in unique_values]
+
+            matrix = ohe.fit_transform(X[[col]]).toarray()
+
+            for i in range(len(matrix.T)):
+                X[str(col) + "_" + column_names[i]] = matrix.T[i]
+
+            X = X.drop([col], axis=1)
+
+        return X
+
+
+class CustomStandardScaler(BaseEstimator, TransformerMixin):
+    # Applies StandardScaler and keeps the column names
+    def __init__(self):
+        # Initialize the standard scaler
+        self.scaler = StandardScaler()
+        # Store column names for later use
+        self.columns = None
+
+    def fit(self, X, y=None):
+        # Store column names before scaling
+        self.columns = X.columns
+        # Fit the scaler
+        self.scaler.fit(X)
+        return self
+
+    def transform(self, X):
+        # Transform the data
+        scaled_data = self.scaler.transform(X)
+        # Convert back to DataFrame with original column names
+        return pd.DataFrame(scaled_data, columns=self.columns, index=X.index)
+
+
+X_inputs = strat_test_set.drop("loan_status", axis=1)
+y_labels = strat_test_set["loan_status"].copy()
+
+pipe = Pipeline(
+    [
+        ("Converting yes/no column", Convert_Encoder()),
+        ("Converts categorical columns", Convert_Categorical()),
+        ("Std scaler", CustomStandardScaler()),
+    ]
+)
+
+X_transformed = pipe.fit_transform(X_inputs)
+
+X_transformed.head()
+```
+
+## Training Models
+Our first model is linear regression. Below is the results of using Linear Regression model:
+
+```{python} 
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+lin_reg = LinearRegression()
+lin_reg.fit(X_transformed, y_labels)
+linear_pred = lin_reg.predict(X_transformed)
+linear_rmse = mean_squared_error(y_labels, linear_pred)
+print(f"The RMSE of Linear regression is: {linear_rmse}")
+```
+
+And below is Decision Tree regression:
+```{python} 
+from sklearn.tree import DecisionTreeRegressor
+
+tree_reg = DecisionTreeRegressor()
+tree_reg.fit(X_transformed, y_labels)
+tree_pred = tree_reg.predict(X_transformed)
+tree_rmse = mean_squared_error(y_labels, tree_pred)
+print(f"The RMSE of DecisionTree regression is: {tree_rmse}")
+```
+
+We can instantly notice that the Decision Tree has an abnormal erro rate of 0. This means it is overfitting that data to solve this we are going to use cross validation. For that we are going to use Scikit-Learn's K-fold cross validation feature.
+
+```{python} 
+from sklearn.model_selection import cross_val_score
+
+scores = cross_val_score(
+    lin_reg, X_transformed, y_labels, scoring="neg_mean_squared_error", cv=10
+)
+
+
+def display_scores(scores):
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+
+
+linear_rmse_scores = np.sqrt(-scores)
+tree_rmse_scores = np.sqrt(-scores)
+
+print("------LinearRegression-------")
+display_scores(linear_rmse_scores)
+print("\n")
+print("------DecisionTreeRegressor-------")
+display_scores(tree_rmse_scores)
+```
