@@ -1,0 +1,615 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Data Analysis using Regression Models\"\n",
+        "author: \"Just1a2Noob\"\n",
+        "format:\n",
+        "  html:\n",
+        "    theme: zephyr\n",
+        "    toc: true\n",
+        "    code-fold: true\n",
+        "    code-summary: \"Show the code\"\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "# Introduction\n",
+        "\n",
+        "In this analysis we are going to use regression models used in Scikit-Learn to predict whether an individual has theyre loan approved and what important features that associate with the prediction.\n",
+        "\n",
+        "The metadata description of as follows:\n",
+        "\n",
+        "| Column | Description | Type |\n",
+        "| --------------- | --------------- | --------------- |\n",
+        "|person_age |Age of the person | Float |\n",
+        "|person_gender\t| Gender of the person | Categorical|\n",
+        "|person_education\t| Highest education level | Categorical|\n",
+        "|person_income\t|  Annual income |Float|\n",
+        "|person_emp_exp\t| Years of employment experience | Integer|\n",
+        "|person_home_ownership\t| Home ownership status (e.g., rent, own, mortgage)| Categorical|\n",
+        "|loan_amnt\t| Loan amount requested | Float|\n",
+        "|loan_intent | Purpose of the loan |Categorical|\n",
+        "|loan_int_rate\t| Loan interest rat |\tFloat|\n",
+        "|loan_percent_income | Loan amount as a percentage of annual income | Float|\n",
+        "|cb_person_cred_hist_length | Length of credit history in years | Float|\n",
+        "|credit_score | Credit score of the person | Integer|\n",
+        "|previous_loan_defaults_on_file | Indicator of previous loan defaults | Categorical|\n",
+        "|loan_status (target variable) | Loan approval status: 1 = approved; 0 = rejected | Integer|\n",
+        "\n",
+        "## Setting Up Our Environment"
+      ],
+      "id": "aa0f2aed"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pandas as pd\n",
+        "import matplotlib.pyplot as plt\n",
+        "import numpy as np\n",
+        "\n",
+        "df = pd.read_csv(\"loan_data.csv\")\n",
+        "df.head()"
+      ],
+      "id": "d86cb979",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "df.hist(bins=100, figsize=(20, 15))\n",
+        "plt.show()"
+      ],
+      "id": "06576609",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The graphs above gives us graph of all numerical columns in terms of frequency. From a glance we can see that the column's\n"
+      ],
+      "id": "5b747d97"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.model_selection import train_test_split, StratifiedShuffleSplit\n",
+        "\n",
+        "# This if for splitting the data\n",
+        "train_set, test_set = train_test_split(df, test_size=0.2)\n",
+        "\n",
+        "# stratified sampling on the target\n",
+        "stratified_shuffle = StratifiedShuffleSplit(n_splits=1, test_size=0.2)\n",
+        "for train_index, test_index in stratified_shuffle.split(df, df[\"loan_status\"]):\n",
+        "    strat_train_set = df.loc[train_index]\n",
+        "    strat_test_set = df.loc[test_index]\n",
+        "\n",
+        "loan_status = strat_train_set.copy()"
+      ],
+      "id": "468712c3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Exploratory Data Analysis "
+      ],
+      "id": "005e1934"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from pandas.plotting import scatter_matrix\n",
+        "\n",
+        "attributes = [\n",
+        "    \"person_age\",\n",
+        "    \"person_income\",\n",
+        "    \"loan_percent_income\",\n",
+        "    \"credit_score\",\n",
+        "    \"person_emp_exp\",\n",
+        "    \"loan_amnt\",\n",
+        "]\n",
+        "scatter_matrix(loan_status[attributes], figsize=(12, 8))"
+      ],
+      "id": "eb040e4d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The graph above is a correlation matrix shown in terms of graphs. The columns used are age, income, loan percent income, credit score, employment experience, and loan amount. From the graph we can see that multiple graphs are scattered making it hard to find any meaningful patterns just from graphs alone. But we can see outliers and anomalies from these graphs.\n",
+        "\n",
+        "We can see an anomaly in the data in the age group there are some people who are more than 80 years old."
+      ],
+      "id": "c5743457"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.loc[df['person_age'] >= 80]"
+      ],
+      "id": "75ad5020",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Also, we see an outlier in the person employed experience, some reaching above 100."
+      ],
+      "id": "610ed584"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.loc[df['person_emp_exp'] >= 100]"
+      ],
+      "id": "0af92be8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "And finally individuals who have an abnormally large income and abnormally low income we are going to ignore that and accept them because they are within the realm of possibilities but at the extreme level.\n",
+        "\n",
+        "## Preparing for Data For Machine Learning \n",
+        "I am gonna apply both OrdinalEncoder, OneHotEncoder, and StandardScaler to our inputs data set."
+      ],
+      "id": "40ae4356"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.base import BaseEstimator, TransformerMixin\n",
+        "from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, StandardScaler\n",
+        "\n",
+        "\n",
+        "class Convert_Encoder(BaseEstimator, TransformerMixin):\n",
+        "    # Converts previous_loan_defaults_on_file column to binary\n",
+        "    def fit(self, X, y=None):\n",
+        "        return self\n",
+        "\n",
+        "    def transform(self, X):\n",
+        "        enc = OrdinalEncoder(categories=[[\"No\", \"Yes\"]])\n",
+        "        X[\"previous_loan_defaults_on_file\"] = enc.fit_transform(\n",
+        "            X[[\"previous_loan_defaults_on_file\"]]\n",
+        "        ).astype(int)\n",
+        "\n",
+        "        return X\n",
+        "\n",
+        "\n",
+        "class Convert_Categorical(BaseEstimator, TransformerMixin):\n",
+        "    # Apply OneHotEncoder to every categorical column\n",
+        "    def fit(self, X, y=None):\n",
+        "        return self\n",
+        "\n",
+        "    def transform(self, X):\n",
+        "        categorical_columns = [\n",
+        "            \"person_gender\",\n",
+        "            \"person_education\",\n",
+        "            \"person_home_ownership\",\n",
+        "            \"loan_intent\",\n",
+        "        ]\n",
+        "        ohe = OneHotEncoder()\n",
+        "\n",
+        "        for col in categorical_columns:\n",
+        "            unique_values = X[col].unique()\n",
+        "            column_names = [str(value) for value in unique_values]\n",
+        "\n",
+        "            matrix = ohe.fit_transform(X[[col]]).toarray()\n",
+        "\n",
+        "            for i in range(len(matrix.T)):\n",
+        "                X[str(col) + \"_\" + column_names[i]] = matrix.T[i]\n",
+        "\n",
+        "            X = X.drop([col], axis=1)\n",
+        "\n",
+        "        return X\n",
+        "\n",
+        "\n",
+        "class CustomStandardScaler(BaseEstimator, TransformerMixin):\n",
+        "    # Applies StandardScaler and keeps the column names\n",
+        "    def __init__(self):\n",
+        "        # Initialize the standard scaler\n",
+        "        self.scaler = StandardScaler()\n",
+        "        # Store column names for later use\n",
+        "        self.columns = None\n",
+        "\n",
+        "    def fit(self, X, y=None):\n",
+        "        # Store column names before scaling\n",
+        "        self.columns = X.columns\n",
+        "        # Fit the scaler\n",
+        "        self.scaler.fit(X)\n",
+        "        return self\n",
+        "\n",
+        "    def transform(self, X):\n",
+        "        # Transform the data\n",
+        "        scaled_data = self.scaler.transform(X)\n",
+        "        # Convert back to DataFrame with original column names\n",
+        "        return pd.DataFrame(scaled_data, columns=self.columns, index=X.index)\n",
+        "\n",
+        "\n",
+        "X_inputs = strat_test_set.drop(\"loan_status\", axis=1)\n",
+        "y_labels = strat_test_set[\"loan_status\"].copy()\n",
+        "\n",
+        "pipe = Pipeline(\n",
+        "    [\n",
+        "        (\"Converting yes/no column\", Convert_Encoder()),\n",
+        "        (\"Converts categorical columns\", Convert_Categorical()),\n",
+        "        (\"Std scaler\", CustomStandardScaler()),\n",
+        "    ]\n",
+        ")\n",
+        "\n",
+        "X_transformed = pipe.fit_transform(X_inputs)\n",
+        "\n",
+        "X_transformed.head()"
+      ],
+      "id": "254515b8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Regression Models\n",
+        "Our first model is linear regression. Below is the results of using Linear Regression model:"
+      ],
+      "id": "a5468655"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.linear_model import LinearRegression\n",
+        "from sklearn.metrics import mean_squared_error\n",
+        "\n",
+        "lin_reg = LinearRegression()\n",
+        "lin_reg.fit(X_transformed, y_labels)\n",
+        "linear_pred = lin_reg.predict(X_transformed)\n",
+        "linear_rmse = mean_squared_error(y_labels, linear_pred)\n",
+        "print(f\"The RMSE of Linear regression is: {linear_rmse}\")"
+      ],
+      "id": "fd899aa3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "And below is Decision Tree regression:"
+      ],
+      "id": "04d676c1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.tree import DecisionTreeRegressor\n",
+        "\n",
+        "tree_reg = DecisionTreeRegressor()\n",
+        "tree_reg.fit(X_transformed, y_labels)\n",
+        "tree_pred = tree_reg.predict(X_transformed)\n",
+        "tree_rmse = mean_squared_error(y_labels, tree_pred)\n",
+        "print(f\"The RMSE of DecisionTree regression is: {tree_rmse}\")"
+      ],
+      "id": "8a72d4c0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can instantly notice that the Decision Tree has an abnormal error rate of 0. This means it is overfitting that data to solve this we are going to use cross validation. For that we are going to use Scikit-Learn's K-fold cross validation feature."
+      ],
+      "id": "8cad6874"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.model_selection import cross_val_score\n",
+        "\n",
+        "lin_scores = cross_val_score(\n",
+        "    lin_reg, X_transformed, y_labels, scoring=\"neg_mean_squared_error\", cv=10\n",
+        ")\n",
+        "tree_scores = cross_val_score(\n",
+        "  tree_reg, X_transformed, y_labels, scoring=\"neg_mean_squared_error\", cv=10\n",
+        ")\n",
+        "\n",
+        "\n",
+        "def display_scores(scores):\n",
+        "    print(\"Scores:\", scores)\n",
+        "    print(\"Mean:\", scores.mean())\n",
+        "    print(\"Standard deviation:\", scores.std())\n",
+        "\n",
+        "\n",
+        "linear_rmse_scores = np.sqrt(-lin_scores)\n",
+        "tree_rmse_scores = np.sqrt(-tree_scores)\n",
+        "\n",
+        "print(\"------LinearRegression-------\")\n",
+        "display_scores(linear_rmse_scores)\n",
+        "print(\"\\n\")\n",
+        "print(\"------DecisionTreeRegressor-------\")\n",
+        "display_scores(tree_rmse_scores)"
+      ],
+      "id": "0b5c7fc3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Ensemble Models\n",
+        "We are going to use simple ensemble models with the purpose of seeing whether using ensemble methods are better compared to linear regression and decision tree. \n",
+        "\n",
+        "The ensemble method we are going to use is Random Forests which works by training many Decision Trees on random subsets of the features, then averaging out their predictions."
+      ],
+      "id": "92f62165"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.ensemble import RandomForestRegressor\n",
+        "\n",
+        "forest_reg = RandomForestRegressor(n_estimators=100, random_state=42)\n",
+        "forest_reg.fit(X_transformed, y_labels)\n",
+        "\n",
+        "forest_pred = forest_reg.predict(X_transformed)\n",
+        "forest_mse = mean_squared_error(y_labels, forest_pred)\n",
+        "forest_rsme = np.sqrt(forest_mse)\n",
+        "print(f\"This is the RMSE of Forest Regression: {forest_rsme}\")"
+      ],
+      "id": "35ec29ec",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "forest_scores = cross_val_score(forest_reg, X_transformed, y_labels, scoring=\"neg_mean_squared_error\", cv=10)\n",
+        "forest_rmse_scores = np.sqrt(-forest_scores)\n",
+        "display_scores(forest_rmse_scores)"
+      ],
+      "id": "66375dde",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "From the looks of it Random Forests looks very promising. However, not that the score on the training set is still much lower than on the validation sets, meaning that the model is still overfitting the training set. We can fine-tune Forest Regressor using the `RandomizedSearchCV` class from Scikit-Learn which searches a range of parameters and finds the best parameters."
+      ],
+      "id": "aa39d681"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.model_selection import RandomizedSearchCV\n",
+        "from scipy.stats import randint\n",
+        "\n",
+        "parameter_distribs = {\n",
+        "  'n_estimators': randint(low=1, high=200),\n",
+        "  'max_features': randint(low=1, high=20)\n",
+        "}\n",
+        "\n",
+        "forest_random_search = RandomizedSearchCV(\n",
+        "  forest_reg,\n",
+        "  param_distributions=parameter_distribs, \n",
+        "  n_iter=10,\n",
+        "  cv=5, \n",
+        "  scoring=\"neg_mean_squared_error\",\n",
+        ")\n",
+        "forest_random_search.fit(X_transformed, y_labels)\n",
+        "\n",
+        "cvres = forest_random_search.cv_results_\n",
+        "for mean_score, params in zip(cvres[\"mean_test_score\"], cvres[\"params\"]):\n",
+        "  print(np.sqrt(-mean_score), params)"
+      ],
+      "id": "617b2bef",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "From here we can see the best parameters of Random Forest model, we can also see each feature."
+      ],
+      "id": "990391fe"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "importances = forest_random_search.best_estimator_.feature_importances_\n",
+        "\n",
+        "feature_importance_df = pd.DataFrame({\n",
+        "  'feature': X_transformed.columns,\n",
+        "  'importance': importances,\n",
+        "})\n",
+        "feature_importance_df = feature_importance_df.sort_values('importance', ascending=False)\n",
+        "\n",
+        "feature_importance_df"
+      ],
+      "id": "34f44e37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Although this already provides a clear image of which features are of importance, we don't know if they are negatively or positively correlated with the target. To provide a clear correlation of its features to the target we show SHAP values below:"
+      ],
+      "id": "db6f6d8f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "import shap\n",
+        "\n",
+        "best_model = forest_random_search.best_estimator_\n",
+        "explainer = shap.TreeExplainer(best_model)\n",
+        "\n",
+        "shap_values = explainer.shap_values(X_transformed)\n",
+        "\n",
+        "# Create a function to analyze and visualize SHAP values\n",
+        "def analyze_shap_values(shap_values, X_df, feature_names):\n",
+        "    # 1. Global Feature Impact Analysis\n",
+        "    print(\"\\nGlobal Feature Impact Analysis:\")\n",
+        "    print(\"=\" * 80)\n",
+        "    \n",
+        "    # Calculate mean absolute SHAP values for each feature\n",
+        "    mean_abs_shap = np.abs(shap_values).mean(axis=0)\n",
+        "    feature_importance = pd.DataFrame({\n",
+        "        'Feature': feature_names,\n",
+        "        'Mean |SHAP|': mean_abs_shap\n",
+        "    })\n",
+        "    feature_importance = feature_importance.sort_values('Mean |SHAP|', ascending=False)\n",
+        "    \n",
+        "    print(\"\\nFeature Importance Rankings:\")\n",
+        "    print(feature_importance.to_string(index=False))\n",
+        "    \n",
+        "    # 2. Create Summary Plot\n",
+        "    plt.figure(figsize=(10, 8))\n",
+        "    shap.summary_plot(shap_values, X_df, plot_type=\"bar\", show=False)\n",
+        "    plt.title(\"Global Feature Impact (SHAP Values)\")\n",
+        "    plt.tight_layout()\n",
+        "    plt.show()\n",
+        "    \n",
+        "    # 3. Create SHAP Summary Violin Plot\n",
+        "    plt.figure(figsize=(12, 8))\n",
+        "    shap.summary_plot(shap_values, X_df, show=False)\n",
+        "    plt.title(\"Feature Impact Distribution\")\n",
+        "    plt.tight_layout()\n",
+        "    plt.show()\n",
+        "    \n",
+        "    # 4. Analyze Individual Feature Effects\n",
+        "    print(\"\\nDetailed Feature Impact Analysis:\")\n",
+        "    print(\"=\" * 80)\n",
+        "    \n",
+        "    for feature in feature_names:\n",
+        "        shap_values_feature = shap_values[:, feature_names.index(feature)]\n",
+        "        mean_shap = np.mean(shap_values_feature)\n",
+        "        abs_mean_shap = np.mean(np.abs(shap_values_feature))\n",
+        "        \n",
+        "        print(f\"\\nFeature: {feature}\")\n",
+        "        print(f\"Average SHAP Impact: {mean_shap:.4f}\")\n",
+        "        print(f\"Average Absolute SHAP Impact: {abs_mean_shap:.4f}\")\n",
+        "        print(f\"Direction: {'Positive' if mean_shap > 0 else 'Negative'} overall impact\")\n",
+        "\n",
+        "# Perform the analysis\n",
+        "analyze_shap_values(shap_values, X_transformed, list(X_transformed.columns))"
+      ],
+      "id": "d0709fd3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The bar graph is showing us the absolute SHAP values of each feature on how they effect the model. The second graph is showing us when a feature is decreases does it's SHAP value also decrease, for example for the feature `previous_loan_defaults_on_file` shows that as it decrease the SHAP value increase.\n",
+        "\n",
+        "::: {.notes}\n",
+        "Although SHAP values might seem to be useful there are 2 limitations that must one be aware of:\n",
+        "1. SHAP values are calculated with the assumption that each feature is **independent**.\n",
+        "2. SHAP is not a measure of \"how important a given feature is in the real world\", it is simply \"how important a given feature is to the model\".\n",
+        ":::\n",
+        "\n",
+        "## Evaluating Random Forest Model\n",
+        "After cleaning and fine-tuning our Random Forest we now evaluate models using the test set prepared beforehand."
+      ],
+      "id": "7b17843e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "final_model = forest_random_search.best_estimator_\n",
+        "\n",
+        "X_test = strat_test_set.drop(\"loan_status\", axis=1)\n",
+        "Y_test = strat_test_set[\"loan_status\"].copy()\n",
+        "\n",
+        "X_test_prepared = pipe.fit_transform(X_test)\n",
+        "final_predictions = final_model.predict(X_test_prepared)\n",
+        "\n",
+        "final_mse = mean_squared_error(Y_test, final_predictions)\n",
+        "final_rmse = np.sqrt(final_mse)\n",
+        "\n",
+        "final_rmse"
+      ],
+      "id": "95f8acb6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here we can see the predicted RMSE of the Random Forest with the best parameters we had found. Additionally, we can compute the 95% confidence interval for the test RMSE:"
+      ],
+      "id": "e17b14da"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from scipy import stats\n",
+        "\n",
+        "confidence = 0.95\n",
+        "\n",
+        "squared_errors = (final_predictions - Y_test) ** 2\n",
+        "np.sqrt(stats.t.interval(confidence, len(squared_errors) - 1,\n",
+        "                         loc=squared_errors.mean(),\n",
+        "                         scale=stats.sem(squared_errors),\n",
+        "                         )\n",
+        "        )"
+      ],
+      "id": "5f28a8c8",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/just1a2noob/.local/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
