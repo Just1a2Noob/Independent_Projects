@@ -1,17 +1,37 @@
 ---
-title: "Data Analysis with Quarto"
+title: "Data Analysis using Regression Models"
 author: "Just1a2Noob"
 format:
   html:
     theme: zephyr
-    code-fold: true
     toc: true
+    code-fold: true
+    code-summary: "Show the code"
 jupyter: python3
 ---
 
 # Introduction
 
-This is a Quarto document analyzing factors that contribute to credit risk. This analysis is mostly used for learning purposes only.
+In this analysis we are going to use regression models used in Scikit-Learn to predict whether an individual has theyre loan approved and what important features that associate with the prediction.
+
+The metadata description of as follows:
+
+| Column | Description | Type |
+| --------------- | --------------- | --------------- |
+|person_age |Age of the person | Float |
+|person_gender	| Gender of the person | Categorical|
+|person_education	| Highest education level | Categorical|
+|person_income	|  Annual income |Float|
+|person_emp_exp	| Years of employment experience | Integer|
+|person_home_ownership	| Home ownership status (e.g., rent, own, mortgage)| Categorical|
+|loan_amnt	| Loan amount requested | Float|
+|loan_intent | Purpose of the loan |Categorical|
+|loan_int_rate	| Loan interest rat |	Float|
+|loan_percent_income | Loan amount as a percentage of annual income | Float|
+|cb_person_cred_hist_length | Length of credit history in years | Float|
+|credit_score | Credit score of the person | Integer|
+|previous_loan_defaults_on_file | Indicator of previous loan defaults | Categorical|
+|loan_status (target variable) | Loan approval status: 1 = approved; 0 = rejected | Integer|
 
 ## Setting Up Our Environment
 
@@ -171,7 +191,7 @@ X_transformed = pipe.fit_transform(X_inputs)
 X_transformed.head()
 ```
 
-## Training Models
+## Regression Models
 Our first model is linear regression. Below is the results of using Linear Regression model:
 
 ```{python} 
@@ -287,7 +307,75 @@ feature_importance_df = feature_importance_df.sort_values('importance', ascendin
 feature_importance_df
 ```
 
-## Evaluate Models
+Although this already provides a clear image of which features are of importance, we don't know if they are negatively or positively correlated with the target. To provide a clear correlation of its features to the target we show SHAP values below:
+
+```{python}
+import matplotlib.pyplot as plt
+import shap
+
+best_model = forest_random_search.best_estimator_
+explainer = shap.TreeExplainer(best_model)
+
+shap_values = explainer.shap_values(X_transformed)
+
+# Create a function to analyze and visualize SHAP values
+def analyze_shap_values(shap_values, X_df, feature_names):
+    # 1. Global Feature Impact Analysis
+    print("\nGlobal Feature Impact Analysis:")
+    print("=" * 80)
+    
+    # Calculate mean absolute SHAP values for each feature
+    mean_abs_shap = np.abs(shap_values).mean(axis=0)
+    feature_importance = pd.DataFrame({
+        'Feature': feature_names,
+        'Mean |SHAP|': mean_abs_shap
+    })
+    feature_importance = feature_importance.sort_values('Mean |SHAP|', ascending=False)
+    
+    print("\nFeature Importance Rankings:")
+    print(feature_importance.to_string(index=False))
+    
+    # 2. Create Summary Plot
+    plt.figure(figsize=(10, 8))
+    shap.summary_plot(shap_values, X_df, plot_type="bar", show=False)
+    plt.title("Global Feature Impact (SHAP Values)")
+    plt.tight_layout()
+    plt.show()
+    
+    # 3. Create SHAP Summary Violin Plot
+    plt.figure(figsize=(12, 8))
+    shap.summary_plot(shap_values, X_df, show=False)
+    plt.title("Feature Impact Distribution")
+    plt.tight_layout()
+    plt.show()
+    
+    # 4. Analyze Individual Feature Effects
+    print("\nDetailed Feature Impact Analysis:")
+    print("=" * 80)
+    
+    for feature in feature_names:
+        shap_values_feature = shap_values[:, feature_names.index(feature)]
+        mean_shap = np.mean(shap_values_feature)
+        abs_mean_shap = np.mean(np.abs(shap_values_feature))
+        
+        print(f"\nFeature: {feature}")
+        print(f"Average SHAP Impact: {mean_shap:.4f}")
+        print(f"Average Absolute SHAP Impact: {abs_mean_shap:.4f}")
+        print(f"Direction: {'Positive' if mean_shap > 0 else 'Negative'} overall impact")
+
+# Perform the analysis
+analyze_shap_values(shap_values, X_transformed, list(X_transformed.columns))
+```
+
+The bar graph is showing us the absolute SHAP values of each feature on how they effect the model. The second graph is showing us when a feature is decreases does it's SHAP value also decrease, for example for the feature `previous_loan_defaults_on_file` shows that as it decrease the SHAP value increase.
+
+::: {.notes}
+Although SHAP values might seem to be useful there are 2 limitations that must one be aware of:
+1. SHAP values are calculated with the assumption that each feature is **independent**.
+2. SHAP is not a measure of "how important a given feature is in the real world", it is simply "how important a given feature is to the model".
+:::
+
+## Evaluating Random Forest Model
 After cleaning and fine-tuning our Random Forest we now evaluate models using the test set prepared beforehand.
 
 ```{python}
@@ -305,4 +393,17 @@ final_rmse = np.sqrt(final_mse)
 final_rmse
 ```
 
-Here we can see the predicted RMSE of the Random Forest with the best parameters we had found.
+Here we can see the predicted RMSE of the Random Forest with the best parameters we had found. Additionally, we can compute the 95% confidence interval for the test RMSE:
+
+```{python}
+from scipy import stats
+
+confidence = 0.95
+
+squared_errors = (final_predictions - Y_test) ** 2
+np.sqrt(stats.t.interval(confidence, len(squared_errors) - 1,
+                         loc=squared_errors.mean(),
+                         scale=stats.sem(squared_errors),
+                         )
+        )
+```

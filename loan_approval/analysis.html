@@ -8,7 +8,7 @@
 
 <meta name="author" content="Just1a2Noob">
 
-<title>Data Analysis with Quarto</title>
+<title>Data Analysis using Regression Models</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -89,11 +89,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#setting-up-our-environment" id="toc-setting-up-our-environment" class="nav-link" data-scroll-target="#setting-up-our-environment">Setting Up Our Environment</a></li>
   <li><a href="#exploratory-data-analysis" id="toc-exploratory-data-analysis" class="nav-link" data-scroll-target="#exploratory-data-analysis">Exploratory Data Analysis</a></li>
   <li><a href="#preparing-for-data-for-machine-learning" id="toc-preparing-for-data-for-machine-learning" class="nav-link" data-scroll-target="#preparing-for-data-for-machine-learning">Preparing for Data For Machine Learning</a></li>
-  <li><a href="#training-models" id="toc-training-models" class="nav-link" data-scroll-target="#training-models">Training Models</a>
+  <li><a href="#regression-models" id="toc-regression-models" class="nav-link" data-scroll-target="#regression-models">Regression Models</a>
   <ul class="collapse">
   <li><a href="#ensemble-models" id="toc-ensemble-models" class="nav-link" data-scroll-target="#ensemble-models">Ensemble Models</a></li>
   </ul></li>
-  <li><a href="#evaluate-models" id="toc-evaluate-models" class="nav-link" data-scroll-target="#evaluate-models">Evaluate Models</a></li>
+  <li><a href="#evaluating-random-forest-model" id="toc-evaluating-random-forest-model" class="nav-link" data-scroll-target="#evaluating-random-forest-model">Evaluating Random Forest Model</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -102,7 +102,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Data Analysis with Quarto</h1>
+<h1 class="title">Data Analysis using Regression Models</h1>
 </div>
 
 
@@ -127,12 +127,99 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>This is a Quarto document analyzing factors that contribute to credit risk. This analysis is mostly used for learning purposes only.</p>
+<p>In this analysis we are going to use regression models used in Scikit-Learn to predict whether an individual has theyre loan approved and what important features that associate with the prediction.</p>
+<p>The metadata description of as follows:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Description</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>person_age</td>
+<td>Age of the person</td>
+<td>Float</td>
+</tr>
+<tr class="even">
+<td>person_gender</td>
+<td>Gender of the person</td>
+<td>Categorical</td>
+</tr>
+<tr class="odd">
+<td>person_education</td>
+<td>Highest education level</td>
+<td>Categorical</td>
+</tr>
+<tr class="even">
+<td>person_income</td>
+<td>Annual income</td>
+<td>Float</td>
+</tr>
+<tr class="odd">
+<td>person_emp_exp</td>
+<td>Years of employment experience</td>
+<td>Integer</td>
+</tr>
+<tr class="even">
+<td>person_home_ownership</td>
+<td>Home ownership status (e.g., rent, own, mortgage)</td>
+<td>Categorical</td>
+</tr>
+<tr class="odd">
+<td>loan_amnt</td>
+<td>Loan amount requested</td>
+<td>Float</td>
+</tr>
+<tr class="even">
+<td>loan_intent</td>
+<td>Purpose of the loan</td>
+<td>Categorical</td>
+</tr>
+<tr class="odd">
+<td>loan_int_rate</td>
+<td>Loan interest rat</td>
+<td>Float</td>
+</tr>
+<tr class="even">
+<td>loan_percent_income</td>
+<td>Loan amount as a percentage of annual income</td>
+<td>Float</td>
+</tr>
+<tr class="odd">
+<td>cb_person_cred_hist_length</td>
+<td>Length of credit history in years</td>
+<td>Float</td>
+</tr>
+<tr class="even">
+<td>credit_score</td>
+<td>Credit score of the person</td>
+<td>Integer</td>
+</tr>
+<tr class="odd">
+<td>previous_loan_defaults_on_file</td>
+<td>Indicator of previous loan defaults</td>
+<td>Categorical</td>
+</tr>
+<tr class="even">
+<td>loan_status (target variable)</td>
+<td>Loan approval status: 1 = approved; 0 = rejected</td>
+<td>Integer</td>
+</tr>
+</tbody>
+</table>
 <section id="setting-up-our-environment" class="level2">
 <h2 class="anchored" data-anchor-id="setting-up-our-environment">Setting Up Our Environment</h2>
-<div id="e0f3befe" class="cell" data-execution_count="1">
+<div id="189524c3" class="cell" data-execution_count="1">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -140,7 +227,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"loan_data.csv"</span>)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="31">
+<div class="cell-output cell-output-display" data-execution_count="18">
 <div>
 
 
@@ -256,9 +343,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="768303e5" class="cell" data-execution_count="2">
+<div id="aab30ad9" class="cell" data-execution_count="2">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df.hist(bins<span class="op">=</span><span class="dv">100</span>, figsize<span class="op">=</span>(<span class="dv">20</span>, <span class="dv">15</span>))</span>
@@ -273,9 +360,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The graphs above gives us graph of all numerical columns in terms of frequency. From a glance we can see that the column’s</p>
-<div id="22bbd42e" class="cell" data-execution_count="3">
+<div id="58e2be04" class="cell" data-execution_count="3">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split, StratifiedShuffleSplit</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># This if for splitting the data</span></span>
@@ -293,9 +380,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="exploratory-data-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="exploratory-data-analysis">Exploratory Data Analysis</h2>
-<div id="dc124508" class="cell" data-execution_count="4">
+<div id="681dcc62" class="cell" data-execution_count="4">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pandas.plotting <span class="im">import</span> scatter_matrix</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>attributes <span class="op">=</span> [</span>
@@ -308,7 +395,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>]</span>
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>scatter_matrix(loan_status[attributes], figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="34">
+<div class="cell-output cell-output-display" data-execution_count="21">
 <pre><code>array([[&lt;Axes: xlabel='person_age', ylabel='person_age'&gt;,
         &lt;Axes: xlabel='person_income', ylabel='person_age'&gt;,
         &lt;Axes: xlabel='loan_percent_income', ylabel='person_age'&gt;,
@@ -356,12 +443,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>The graph above is a correlation matrix shown in terms of graphs. The columns used are age, income, loan percent income, credit score, employment experience, and loan amount. From the graph we can see that multiple graphs are scattered making it hard to find any meaningful patterns just from graphs alone. But we can see outliers and anomalies from these graphs.</p>
 <p>We can see an anomaly in the data in the age group there are some people who are more than 80 years old.</p>
-<div id="a753bab3" class="cell" data-execution_count="5">
+<div id="b7a34f04" class="cell" data-execution_count="5">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df.loc[df[<span class="st">'person_age'</span>] <span class="op">&gt;=</span> <span class="dv">80</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="35">
+<div class="cell-output cell-output-display" data-execution_count="22">
 <div>
 
 
@@ -563,12 +650,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Also, we see an outlier in the person employed experience, some reaching above 100.</p>
-<div id="21cc295b" class="cell" data-execution_count="6">
+<div id="4cd3b3af" class="cell" data-execution_count="6">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df.loc[df[<span class="st">'person_emp_exp'</span>] <span class="op">&gt;=</span> <span class="dv">100</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="36">
+<div class="cell-output cell-output-display" data-execution_count="23">
 <div>
 
 
@@ -689,9 +776,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="preparing-for-data-for-machine-learning" class="level2">
 <h2 class="anchored" data-anchor-id="preparing-for-data-for-machine-learning">Preparing for Data For Machine Learning</h2>
 <p>I am gonna apply both OrdinalEncoder, OneHotEncoder, and StandardScaler to our inputs data set.</p>
-<div id="5ca43c79" class="cell" data-execution_count="7">
+<div id="18e83519" class="cell" data-execution_count="7">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.pipeline <span class="im">import</span> Pipeline</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.base <span class="im">import</span> BaseEstimator, TransformerMixin</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> OrdinalEncoder, OneHotEncoder, StandardScaler</span>
@@ -776,7 +863,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a>X_transformed.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="37">
+<div class="cell-output cell-output-display" data-execution_count="24">
 <div>
 
 
@@ -799,134 +886,134 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <th data-quarto-table-cell-role="th">person_home_ownership_RENT</th>
 <th data-quarto-table-cell-role="th">person_home_ownership_OWN</th>
 <th data-quarto-table-cell-role="th">person_home_ownership_OTHER</th>
-<th data-quarto-table-cell-role="th">loan_intent_MEDICAL</th>
-<th data-quarto-table-cell-role="th">loan_intent_HOMEIMPROVEMENT</th>
 <th data-quarto-table-cell-role="th">loan_intent_DEBTCONSOLIDATION</th>
-<th data-quarto-table-cell-role="th">loan_intent_VENTURE</th>
-<th data-quarto-table-cell-role="th">loan_intent_PERSONAL</th>
 <th data-quarto-table-cell-role="th">loan_intent_EDUCATION</th>
+<th data-quarto-table-cell-role="th">loan_intent_VENTURE</th>
+<th data-quarto-table-cell-role="th">loan_intent_MEDICAL</th>
+<th data-quarto-table-cell-role="th">loan_intent_PERSONAL</th>
+<th data-quarto-table-cell-role="th">loan_intent_HOMEIMPROVEMENT</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">41049</td>
-<td>0.719460</td>
-<td>-0.118623</td>
-<td>0.268169</td>
-<td>0.835062</td>
-<td>0.066362</td>
-<td>0.787726</td>
-<td>0.544167</td>
-<td>-0.872321</td>
-<td>0.981286</td>
-<td>1.112016</td>
+<td data-quarto-table-cell-role="th">37035</td>
+<td>0.367935</td>
+<td>-0.190178</td>
+<td>0.423678</td>
+<td>-0.887871</td>
+<td>-0.047400</td>
+<td>-0.930563</td>
+<td>0.813421</td>
+<td>1.064232</td>
+<td>-1.004901</td>
+<td>1.114519</td>
 <td>...</td>
-<td>1.184569</td>
-<td>-0.045995</td>
-<td>-0.25685</td>
-<td>-1.040601</td>
-<td>-0.439679</td>
-<td>-0.513508</td>
-<td>-0.338250</td>
-<td>2.036123</td>
-<td>-0.442375</td>
-<td>-0.450430</td>
+<td>1.196294</td>
+<td>-0.058791</td>
+<td>-0.261973</td>
+<td>-1.042920</td>
+<td>2.222745</td>
+<td>-0.507281</td>
+<td>-0.336002</td>
+<td>-0.490781</td>
+<td>-0.440398</td>
+<td>-0.450965</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">31751</td>
-<td>2.076399</td>
-<td>1.031896</td>
-<td>2.130843</td>
-<td>1.771833</td>
-<td>-0.345908</td>
-<td>-0.120170</td>
-<td>2.614555</td>
-<td>-0.400887</td>
-<td>0.981286</td>
-<td>-0.899267</td>
+<td data-quarto-table-cell-role="th">7193</td>
+<td>-0.287693</td>
+<td>-0.170526</td>
+<td>-0.551581</td>
+<td>-0.569721</td>
+<td>-0.703999</td>
+<td>-0.580640</td>
+<td>-0.482156</td>
+<td>-0.346391</td>
+<td>-1.004901</td>
+<td>-0.897248</td>
 <td>...</td>
-<td>1.184569</td>
-<td>-0.045995</td>
-<td>-0.25685</td>
-<td>-1.040601</td>
-<td>-0.439679</td>
-<td>-0.513508</td>
-<td>2.956393</td>
-<td>-0.491129</td>
-<td>-0.442375</td>
-<td>-0.450430</td>
+<td>1.196294</td>
+<td>-0.058791</td>
+<td>-0.261973</td>
+<td>-1.042920</td>
+<td>-0.449894</td>
+<td>1.971292</td>
+<td>-0.336002</td>
+<td>-0.490781</td>
+<td>-0.440398</td>
+<td>-0.450965</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2755</td>
-<td>-0.637479</td>
-<td>-0.469921</td>
-<td>-0.409167</td>
-<td>0.054420</td>
-<td>0.382214</td>
-<td>1.128188</td>
-<td>-0.491027</td>
-<td>0.345550</td>
-<td>-1.019071</td>
-<td>-0.899267</td>
+<td data-quarto-table-cell-role="th">10554</td>
+<td>-0.615508</td>
+<td>-0.390480</td>
+<td>-0.876667</td>
+<td>0.061530</td>
+<td>0.723099</td>
+<td>1.168978</td>
+<td>-0.741272</td>
+<td>0.417697</td>
+<td>0.995123</td>
+<td>-0.897248</td>
 <td>...</td>
-<td>1.184569</td>
-<td>-0.045995</td>
-<td>-0.25685</td>
-<td>-1.040601</td>
-<td>-0.439679</td>
-<td>-0.513508</td>
-<td>-0.338250</td>
-<td>2.036123</td>
-<td>-0.442375</td>
-<td>-0.450430</td>
+<td>-0.835915</td>
+<td>-0.058791</td>
+<td>-0.261973</td>
+<td>0.958846</td>
+<td>-0.449894</td>
+<td>-0.507281</td>
+<td>-0.336002</td>
+<td>-0.490781</td>
+<td>-0.440398</td>
+<td>2.217467</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">21061</td>
-<td>0.719460</td>
-<td>-0.309796</td>
-<td>0.437503</td>
-<td>-0.726222</td>
-<td>-1.742307</td>
-<td>-0.574119</td>
-<td>-0.232229</td>
-<td>-1.559829</td>
-<td>0.981286</td>
-<td>1.112016</td>
+<td data-quarto-table-cell-role="th">24147</td>
+<td>0.695749</td>
+<td>0.043899</td>
+<td>0.098591</td>
+<td>-0.885346</td>
+<td>-1.745847</td>
+<td>-1.047204</td>
+<td>-0.223041</td>
+<td>1.828320</td>
+<td>-1.004901</td>
+<td>-0.897248</td>
 <td>...</td>
-<td>1.184569</td>
-<td>-0.045995</td>
-<td>-0.25685</td>
-<td>-1.040601</td>
-<td>2.274388</td>
-<td>-0.513508</td>
-<td>-0.338250</td>
-<td>-0.491129</td>
-<td>-0.442375</td>
-<td>-0.450430</td>
+<td>1.196294</td>
+<td>-0.058791</td>
+<td>-0.261973</td>
+<td>-1.042920</td>
+<td>-0.449894</td>
+<td>-0.507281</td>
+<td>-0.336002</td>
+<td>-0.490781</td>
+<td>-0.440398</td>
+<td>2.217467</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">1089</td>
-<td>-0.807096</td>
-<td>-0.438642</td>
-<td>-0.917170</td>
-<td>1.225383</td>
-<td>1.060465</td>
-<td>2.943981</td>
-<td>-0.491027</td>
-<td>-0.833035</td>
-<td>-1.019071</td>
-<td>1.112016</td>
+<td data-quarto-table-cell-role="th">23047</td>
+<td>0.204028</td>
+<td>-0.073223</td>
+<td>0.586221</td>
+<td>-0.727533</td>
+<td>-1.119398</td>
+<td>-0.813922</td>
+<td>1.072537</td>
+<td>0.417697</td>
+<td>-1.004901</td>
+<td>1.114519</td>
 <td>...</td>
-<td>-0.844189</td>
-<td>-0.045995</td>
-<td>-0.25685</td>
-<td>0.960983</td>
-<td>-0.439679</td>
-<td>-0.513508</td>
-<td>-0.338250</td>
-<td>-0.491129</td>
-<td>-0.442375</td>
-<td>2.220102</td>
+<td>1.196294</td>
+<td>-0.058791</td>
+<td>-0.261973</td>
+<td>-1.042920</td>
+<td>-0.449894</td>
+<td>-0.507281</td>
+<td>-0.336002</td>
+<td>-0.490781</td>
+<td>-0.440398</td>
+<td>2.217467</td>
 </tr>
 </tbody>
 </table>
@@ -936,12 +1023,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </section>
-<section id="training-models" class="level2">
-<h2 class="anchored" data-anchor-id="training-models">Training Models</h2>
+<section id="regression-models" class="level2">
+<h2 class="anchored" data-anchor-id="regression-models">Regression Models</h2>
 <p>Our first model is linear regression. Below is the results of using Linear Regression model:</p>
-<div id="497f72f4" class="cell" data-execution_count="8">
+<div id="89f92da3" class="cell" data-execution_count="8">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -952,13 +1039,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"The RMSE of Linear regression is: </span><span class="sc">{</span>linear_rmse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>The RMSE of Linear regression is: 0.09226342038104461</code></pre>
+<pre><code>The RMSE of Linear regression is: 0.09231312389716649</code></pre>
 </div>
 </div>
 <p>And below is Decision Tree regression:</p>
-<div id="c7d6c677" class="cell" data-execution_count="9">
+<div id="0b265cb7" class="cell" data-execution_count="9">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.tree <span class="im">import</span> DecisionTreeRegressor</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>tree_reg <span class="op">=</span> DecisionTreeRegressor()</span>
@@ -972,9 +1059,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>We can instantly notice that the Decision Tree has an abnormal error rate of 0. This means it is overfitting that data to solve this we are going to use cross validation. For that we are going to use Scikit-Learn’s K-fold cross validation feature.</p>
-<div id="966f83a1" class="cell" data-execution_count="10">
+<div id="5a5519d4" class="cell" data-execution_count="10">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> cross_val_score</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>lin_scores <span class="op">=</span> cross_val_score(</span>
@@ -1002,26 +1089,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>------LinearRegression-------
-Scores: [0.30369176 0.30445229 0.30747847 0.29959718 0.31429724 0.29217875
- 0.33274594 0.29763198 0.30253814 0.30886963]
-Mean: 0.30634813747061573
-Standard deviation: 0.01056008038430404
+Scores: [0.30156439 0.31475889 0.30815437 0.30238201 0.30576998 0.30435019
+ 0.30581339 0.29212893 0.31330446 0.301062  ]
+Mean: 0.30492886274741904
+Standard deviation: 0.006128668698305686
 
 
 ------DecisionTreeRegressor-------
-Scores: [0.33829639 0.34801022 0.32829526 0.34641016 0.34960295 0.32317866
- 0.33665016 0.31797973 0.34318767 0.33333333]
-Mean: 0.3364944533708828
-Standard deviation: 0.010237977532896817</code></pre>
+Scores: [0.34480268 0.33829639 0.34156503 0.34156503 0.33499585 0.31091264
+ 0.34801022 0.31269438 0.32998316 0.34318767]
+Mean: 0.3346013043672193
+Standard deviation: 0.012372478606429921</code></pre>
 </div>
 </div>
 <section id="ensemble-models" class="level3">
 <h3 class="anchored" data-anchor-id="ensemble-models">Ensemble Models</h3>
 <p>We are going to use simple ensemble models with the purpose of seeing whether using ensemble methods are better compared to linear regression and decision tree.</p>
 <p>The ensemble method we are going to use is Random Forests which works by training many Decision Trees on random subsets of the features, then averaging out their predictions.</p>
-<div id="beafccfc" class="cell" data-execution_count="11">
+<div id="51c31a06" class="cell" data-execution_count="11">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestRegressor</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>forest_reg <span class="op">=</span> RandomForestRegressor(n_estimators<span class="op">=</span><span class="dv">100</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
@@ -1033,27 +1120,27 @@ Standard deviation: 0.010237977532896817</code></pre>
 <span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"This is the RMSE of Forest Regression: </span><span class="sc">{</span>forest_rsme<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>This is the RMSE of Forest Regression: 0.08913186236632156</code></pre>
+<pre><code>This is the RMSE of Forest Regression: 0.08795061745724762</code></pre>
 </div>
 </div>
-<div id="9996be0b" class="cell" data-execution_count="12">
+<div id="0448ec0f" class="cell" data-execution_count="12">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>forest_scores <span class="op">=</span> cross_val_score(forest_reg, X_transformed, y_labels, scoring<span class="op">=</span><span class="st">"neg_mean_squared_error"</span>, cv<span class="op">=</span><span class="dv">10</span>)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>forest_rmse_scores <span class="op">=</span> np.sqrt(<span class="op">-</span>forest_scores)</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>display_scores(forest_rmse_scores)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Scores: [0.23755701 0.25154368 0.24771668 0.23837972 0.25373937 0.22250768
- 0.24148108 0.2273888  0.24693544 0.24305441]
-Mean: 0.24103038587647782
-Standard deviation: 0.009508930060888234</code></pre>
+<pre><code>Scores: [0.23457503 0.23876837 0.24356861 0.24290099 0.23390549 0.23717387
+ 0.24596499 0.2300372  0.24386722 0.23021439]
+Mean: 0.23809761525234094
+Standard deviation: 0.005537051966665617</code></pre>
 </div>
 </div>
 <p>From the looks of it Random Forests looks very promising. However, not that the score on the training set is still much lower than on the validation sets, meaning that the model is still overfitting the training set. We can fine-tune Forest Regressor using the <code>RandomizedSearchCV</code> class from Scikit-Learn which searches a range of parameters and finds the best parameters.</p>
-<div id="15e22cb5" class="cell" data-execution_count="13">
+<div id="a27d90aa" class="cell" data-execution_count="13">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> RandomizedSearchCV</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> randint</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1076,22 +1163,22 @@ Standard deviation: 0.009508930060888234</code></pre>
 <span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="bu">print</span>(np.sqrt(<span class="op">-</span>mean_score), params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>0.25348679562366866 {'max_features': 4, 'n_estimators': 20}
-0.23997473015790144 {'max_features': 7, 'n_estimators': 185}
-0.28840400612387357 {'max_features': 2, 'n_estimators': 7}
-0.24097574891392254 {'max_features': 18, 'n_estimators': 175}
-0.2416366431612643 {'max_features': 13, 'n_estimators': 72}
-0.2409246902310706 {'max_features': 17, 'n_estimators': 136}
-0.24659794580450178 {'max_features': 5, 'n_estimators': 32}
-0.240367113707568 {'max_features': 11, 'n_estimators': 66}
-0.2408602422278194 {'max_features': 12, 'n_estimators': 85}
-0.25235372034826653 {'max_features': 3, 'n_estimators': 32}</code></pre>
+<pre><code>0.23566791621110822 {'max_features': 12, 'n_estimators': 198}
+0.2388375855489989 {'max_features': 13, 'n_estimators': 53}
+0.23826437142416595 {'max_features': 5, 'n_estimators': 139}
+0.2386422822738856 {'max_features': 5, 'n_estimators': 80}
+0.2356664935161615 {'max_features': 9, 'n_estimators': 159}
+0.23542257238555978 {'max_features': 10, 'n_estimators': 139}
+0.23543606437986714 {'max_features': 11, 'n_estimators': 185}
+0.246005112359161 {'max_features': 3, 'n_estimators': 186}
+0.23932437897410247 {'max_features': 13, 'n_estimators': 41}
+0.23574041550933914 {'max_features': 12, 'n_estimators': 184}</code></pre>
 </div>
 </div>
 <p>From here we can see the best parameters of Random Forest model, we can also see each feature.</p>
-<div id="bfda12ce" class="cell" data-execution_count="14">
+<div id="fbae72a6" class="cell" data-execution_count="14">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>importances <span class="op">=</span> forest_random_search.best_estimator_.feature_importances_</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>feature_importance_df <span class="op">=</span> pd.DataFrame({</span>
@@ -1102,7 +1189,7 @@ Standard deviation: 0.009508930060888234</code></pre>
 <span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>feature_importance_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="44">
+<div class="cell-output cell-output-display" data-execution_count="31">
 <div>
 
 
@@ -1118,132 +1205,132 @@ Standard deviation: 0.009508930060888234</code></pre>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">8</td>
 <td>previous_loan_defaults_on_file</td>
-<td>0.225213</td>
+<td>0.229168</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">4</td>
-<td>loan_int_rate</td>
-<td>0.157925</td>
-</tr>
-<tr class="odd">
 <td data-quarto-table-cell-role="th">5</td>
 <td>loan_percent_income</td>
-<td>0.157661</td>
+<td>0.174910</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>loan_int_rate</td>
+<td>0.156803</td>
 </tr>
 <tr class="even">
 <td data-quarto-table-cell-role="th">1</td>
 <td>person_income</td>
-<td>0.110491</td>
+<td>0.119240</td>
 </tr>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">7</td>
 <td>credit_score</td>
-<td>0.055399</td>
+<td>0.055484</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
-<td>loan_amnt</td>
-<td>0.054296</td>
-</tr>
-<tr class="odd">
 <td data-quarto-table-cell-role="th">19</td>
 <td>person_home_ownership_OTHER</td>
-<td>0.040857</td>
+<td>0.046437</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">3</td>
+<td>loan_amnt</td>
+<td>0.044643</td>
 </tr>
 <tr class="even">
 <td data-quarto-table-cell-role="th">0</td>
 <td>person_age</td>
-<td>0.028459</td>
+<td>0.024323</td>
 </tr>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">2</td>
 <td>person_emp_exp</td>
-<td>0.027832</td>
+<td>0.023366</td>
 </tr>
 <tr class="even">
 <td data-quarto-table-cell-role="th">6</td>
 <td>cb_person_cred_hist_length</td>
-<td>0.024990</td>
+<td>0.021426</td>
 </tr>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">16</td>
 <td>person_home_ownership_MORTGAGE</td>
-<td>0.022963</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">20</td>
-<td>loan_intent_MEDICAL</td>
-<td>0.010860</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">22</td>
-<td>loan_intent_DEBTCONSOLIDATION</td>
-<td>0.009845</td>
+<td>0.017847</td>
 </tr>
 <tr class="even">
 <td data-quarto-table-cell-role="th">23</td>
-<td>loan_intent_VENTURE</td>
-<td>0.009318</td>
+<td>loan_intent_MEDICAL</td>
+<td>0.010014</td>
 </tr>
 <tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>loan_intent_DEBTCONSOLIDATION</td>
+<td>0.009788</td>
+</tr>
+<tr class="even">
 <td data-quarto-table-cell-role="th">18</td>
 <td>person_home_ownership_OWN</td>
-<td>0.009226</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">25</td>
-<td>loan_intent_EDUCATION</td>
-<td>0.006843</td>
+<td>0.009541</td>
 </tr>
 <tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>loan_intent_VENTURE</td>
+<td>0.008684</td>
+</tr>
+<tr class="even">
 <td data-quarto-table-cell-role="th">21</td>
+<td>loan_intent_EDUCATION</td>
+<td>0.006134</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">25</td>
 <td>loan_intent_HOMEIMPROVEMENT</td>
-<td>0.006682</td>
+<td>0.005943</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">14</td>
-<td>person_education_Master</td>
-<td>0.006002</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">10</td>
-<td>person_gender_male</td>
-<td>0.005888</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">11</td>
+<td data-quarto-table-cell-role="th">12</td>
 <td>person_education_Associate</td>
-<td>0.005805</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">15</td>
-<td>person_education_Doctorate</td>
-<td>0.005545</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">9</td>
-<td>person_gender_female</td>
-<td>0.005486</td>
+<td>0.005749</td>
 </tr>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">24</td>
 <td>loan_intent_PERSONAL</td>
-<td>0.005419</td>
+<td>0.005052</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">12</td>
-<td>person_education_High School</td>
-<td>0.005327</td>
+<td data-quarto-table-cell-role="th">9</td>
+<td>person_gender_female</td>
+<td>0.004989</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">13</td>
-<td>person_education_Bachelor</td>
-<td>0.001165</td>
+<td data-quarto-table-cell-role="th">14</td>
+<td>person_education_High School</td>
+<td>0.004927</td>
 </tr>
 <tr class="even">
+<td data-quarto-table-cell-role="th">10</td>
+<td>person_gender_male</td>
+<td>0.004874</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">11</td>
+<td>person_education_Bachelor</td>
+<td>0.004781</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>person_education_Doctorate</td>
+<td>0.004021</td>
+</tr>
+<tr class="odd">
 <td data-quarto-table-cell-role="th">17</td>
 <td>person_home_ownership_RENT</td>
-<td>0.000503</td>
+<td>0.001124</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>person_education_Master</td>
+<td>0.000733</td>
 </tr>
 </tbody>
 </table>
@@ -1251,32 +1338,294 @@ Standard deviation: 0.009508930060888234</code></pre>
 </div>
 </div>
 </div>
-</section>
-</section>
-<section id="evaluate-models" class="level2">
-<h2 class="anchored" data-anchor-id="evaluate-models">Evaluate Models</h2>
-<p>After cleaning and fine-tuning our Random Forest we now evaluate models using the test set prepared beforehand.</p>
-<div id="d5752678" class="cell" data-execution_count="15">
+<p>Although this already provides a clear image of which features are of importance, we don’t know if they are negatively or positively correlated with the target. To provide a clear correlation of its features to the target we show SHAP values below:</p>
+<div id="5282f352" class="cell" data-execution_count="15">
 <details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>final_model <span class="op">=</span> forest_random_search.best_estimator_</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>X_test <span class="op">=</span> strat_test_set.drop(<span class="st">"loan_status"</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>Y_test <span class="op">=</span> strat_test_set[<span class="st">"loan_status"</span>].copy()</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>X_test_prepared <span class="op">=</span> pipe.fit_transform(X_test)</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>final_predictions <span class="op">=</span> final_model.predict(X_test_prepared)</span>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shap</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>best_model <span class="op">=</span> forest_random_search.best_estimator_</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>explainer <span class="op">=</span> shap.TreeExplainer(best_model)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>shap_values <span class="op">=</span> explainer.shap_values(X_transformed)</span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>final_mse <span class="op">=</span> mean_squared_error(Y_test, final_predictions)</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>final_rmse <span class="op">=</span> np.sqrt(final_mse)</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>final_rmse</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a function to analyze and visualize SHAP values</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> analyze_shap_values(shap_values, X_df, feature_names):</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Global Feature Impact Analysis</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Global Feature Impact Analysis:"</span>)</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">80</span>)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate mean absolute SHAP values for each feature</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    mean_abs_shap <span class="op">=</span> np.<span class="bu">abs</span>(shap_values).mean(axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    feature_importance <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Feature'</span>: feature_names,</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Mean |SHAP|'</span>: mean_abs_shap</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    feature_importance <span class="op">=</span> feature_importance.sort_values(<span class="st">'Mean |SHAP|'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Feature Importance Rankings:"</span>)</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(feature_importance.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. Create Summary Plot</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>    shap.summary_plot(shap_values, X_df, plot_type<span class="op">=</span><span class="st">"bar"</span>, show<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">"Global Feature Impact (SHAP Values)"</span>)</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Create SHAP Summary Violin Plot</span></span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>    shap.summary_plot(shap_values, X_df, show<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">"Feature Impact Distribution"</span>)</span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 4. Analyze Individual Feature Effects</span></span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Detailed Feature Impact Analysis:"</span>)</span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">80</span>)</span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> feature <span class="kw">in</span> feature_names:</span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>        shap_values_feature <span class="op">=</span> shap_values[:, feature_names.index(feature)]</span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>        mean_shap <span class="op">=</span> np.mean(shap_values_feature)</span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>        abs_mean_shap <span class="op">=</span> np.mean(np.<span class="bu">abs</span>(shap_values_feature))</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Feature: </span><span class="sc">{</span>feature<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Average SHAP Impact: </span><span class="sc">{</span>mean_shap<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Average Absolute SHAP Impact: </span><span class="sc">{</span>abs_mean_shap<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Direction: </span><span class="sc">{</span><span class="st">'Positive'</span> <span class="cf">if</span> mean_shap <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">'Negative'</span><span class="sc">}</span><span class="ss"> overall impact"</span>)</span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform the analysis</span></span>
+<span id="cb22-55"><a href="#cb22-55" aria-hidden="true" tabindex="-1"></a>analyze_shap_values(shap_values, X_transformed, <span class="bu">list</span>(X_transformed.columns))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="45">
-<pre><code>0.08797685464928266</code></pre>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Global Feature Impact Analysis:
+================================================================================
+
+Feature Importance Rankings:
+                       Feature  Mean |SHAP|
+previous_loan_defaults_on_file     0.174191
+           loan_percent_income     0.070725
+                 loan_int_rate     0.068078
+                 person_income     0.042767
+   person_home_ownership_OTHER     0.035982
+                  credit_score     0.022845
+                     loan_amnt     0.010755
+person_home_ownership_MORTGAGE     0.010640
+ loan_intent_DEBTCONSOLIDATION     0.008090
+           loan_intent_MEDICAL     0.006861
+     person_home_ownership_OWN     0.006771
+           loan_intent_VENTURE     0.005888
+   loan_intent_HOMEIMPROVEMENT     0.005739
+                person_emp_exp     0.004111
+                    person_age     0.003898
+    cb_person_cred_hist_length     0.003806
+         loan_intent_EDUCATION     0.003296
+  person_education_High School     0.001500
+    person_education_Associate     0.001336
+          loan_intent_PERSONAL     0.001335
+     person_education_Bachelor     0.001324
+          person_gender_female     0.001115
+            person_gender_male     0.001040
+    person_education_Doctorate     0.000780
+    person_home_ownership_RENT     0.000379
+       person_education_Master     0.000112</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analysis_files/figure-html/cell-16-output-2.png" width="755" height="901" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<p>Here we can see the predicted RMSE of the Random Forest with the best parameters we had found.</p>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analysis_files/figure-html/cell-16-output-3.png" width="756" height="900" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Detailed Feature Impact Analysis:
+================================================================================
+
+Feature: person_age
+Average SHAP Impact: -0.0001
+Average Absolute SHAP Impact: 0.0039
+Direction: Negative overall impact
+
+Feature: person_income
+Average SHAP Impact: -0.0033
+Average Absolute SHAP Impact: 0.0428
+Direction: Negative overall impact
+
+Feature: person_emp_exp
+Average SHAP Impact: 0.0004
+Average Absolute SHAP Impact: 0.0041
+Direction: Positive overall impact
+
+Feature: loan_amnt
+Average SHAP Impact: 0.0014
+Average Absolute SHAP Impact: 0.0108
+Direction: Positive overall impact
+
+Feature: loan_int_rate
+Average SHAP Impact: -0.0029
+Average Absolute SHAP Impact: 0.0681
+Direction: Negative overall impact
+
+Feature: loan_percent_income
+Average SHAP Impact: -0.0024
+Average Absolute SHAP Impact: 0.0707
+Direction: Negative overall impact
+
+Feature: cb_person_cred_hist_length
+Average SHAP Impact: 0.0003
+Average Absolute SHAP Impact: 0.0038
+Direction: Positive overall impact
+
+Feature: credit_score
+Average SHAP Impact: 0.0035
+Average Absolute SHAP Impact: 0.0228
+Direction: Positive overall impact
+
+Feature: previous_loan_defaults_on_file
+Average SHAP Impact: 0.0076
+Average Absolute SHAP Impact: 0.1742
+Direction: Positive overall impact
+
+Feature: person_gender_female
+Average SHAP Impact: 0.0001
+Average Absolute SHAP Impact: 0.0011
+Direction: Positive overall impact
+
+Feature: person_gender_male
+Average SHAP Impact: 0.0001
+Average Absolute SHAP Impact: 0.0010
+Direction: Positive overall impact
+
+Feature: person_education_Bachelor
+Average SHAP Impact: -0.0000
+Average Absolute SHAP Impact: 0.0013
+Direction: Negative overall impact
+
+Feature: person_education_Associate
+Average SHAP Impact: 0.0000
+Average Absolute SHAP Impact: 0.0013
+Direction: Positive overall impact
+
+Feature: person_education_Master
+Average SHAP Impact: 0.0000
+Average Absolute SHAP Impact: 0.0001
+Direction: Positive overall impact
+
+Feature: person_education_High School
+Average SHAP Impact: 0.0001
+Average Absolute SHAP Impact: 0.0015
+Direction: Positive overall impact
+
+Feature: person_education_Doctorate
+Average SHAP Impact: 0.0001
+Average Absolute SHAP Impact: 0.0008
+Direction: Positive overall impact
+
+Feature: person_home_ownership_MORTGAGE
+Average SHAP Impact: -0.0011
+Average Absolute SHAP Impact: 0.0106
+Direction: Negative overall impact
+
+Feature: person_home_ownership_RENT
+Average SHAP Impact: -0.0002
+Average Absolute SHAP Impact: 0.0004
+Direction: Negative overall impact
+
+Feature: person_home_ownership_OWN
+Average SHAP Impact: 0.0010
+Average Absolute SHAP Impact: 0.0068
+Direction: Positive overall impact
+
+Feature: person_home_ownership_OTHER
+Average SHAP Impact: -0.0032
+Average Absolute SHAP Impact: 0.0360
+Direction: Negative overall impact
+
+Feature: loan_intent_DEBTCONSOLIDATION
+Average SHAP Impact: -0.0004
+Average Absolute SHAP Impact: 0.0081
+Direction: Negative overall impact
+
+Feature: loan_intent_EDUCATION
+Average SHAP Impact: -0.0001
+Average Absolute SHAP Impact: 0.0033
+Direction: Negative overall impact
+
+Feature: loan_intent_VENTURE
+Average SHAP Impact: -0.0003
+Average Absolute SHAP Impact: 0.0059
+Direction: Negative overall impact
+
+Feature: loan_intent_MEDICAL
+Average SHAP Impact: -0.0003
+Average Absolute SHAP Impact: 0.0069
+Direction: Negative overall impact
+
+Feature: loan_intent_PERSONAL
+Average SHAP Impact: 0.0001
+Average Absolute SHAP Impact: 0.0013
+Direction: Positive overall impact
+
+Feature: loan_intent_HOMEIMPROVEMENT
+Average SHAP Impact: 0.0001
+Average Absolute SHAP Impact: 0.0057
+Direction: Positive overall impact</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="evaluating-random-forest-model" class="level2">
+<h2 class="anchored" data-anchor-id="evaluating-random-forest-model">Evaluating Random Forest Model</h2>
+<p>After cleaning and fine-tuning our Random Forest we now evaluate models using the test set prepared beforehand.</p>
+<div id="0e3e5355" class="cell" data-execution_count="16">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>final_model <span class="op">=</span> forest_random_search.best_estimator_</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>X_test <span class="op">=</span> strat_test_set.drop(<span class="st">"loan_status"</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>Y_test <span class="op">=</span> strat_test_set[<span class="st">"loan_status"</span>].copy()</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>X_test_prepared <span class="op">=</span> pipe.fit_transform(X_test)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>final_predictions <span class="op">=</span> final_model.predict(X_test_prepared)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>final_mse <span class="op">=</span> mean_squared_error(Y_test, final_predictions)</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>final_rmse <span class="op">=</span> np.sqrt(final_mse)</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>final_rmse</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="33">
+<pre><code>np.float64(0.08745744506472503)</code></pre>
+</div>
+</div>
+<p>Here we can see the predicted RMSE of the Random Forest with the best parameters we had found. Additionally, we can compute the 95% confidence interval for the test RMSE:</p>
+<div id="9628dd68" class="cell" data-execution_count="17">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> stats</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>confidence <span class="op">=</span> <span class="fl">0.95</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>squared_errors <span class="op">=</span> (final_predictions <span class="op">-</span> Y_test) <span class="op">**</span> <span class="dv">2</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>np.sqrt(stats.t.interval(confidence, <span class="bu">len</span>(squared_errors) <span class="op">-</span> <span class="dv">1</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>                         loc<span class="op">=</span>squared_errors.mean(),</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>                         scale<span class="op">=</span>stats.sem(squared_errors),</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>                         )</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>        )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="34">
+<pre><code>array([0.08499239, 0.0898549 ])</code></pre>
+</div>
+</div>
 </section>
 </section>
 
