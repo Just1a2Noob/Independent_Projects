@@ -27,11 +27,12 @@ df.head()
 ```{python}
 import matplotlib.pyplot as plt
 
-df.hist(bins=50, figsize=(20, 15))
+df.hist(bins=100, figsize=(20, 15))
 plt.show()
 ```
 
-The graphs above gives us graph of all numerical columns in terms of frequency. From a glance we can see that the columns frequency are mostly skewed. 
+The graphs above gives us graph of all numerical columns in terms of frequency. From a glance we can see that the column's
+
 
 
 ```{python} 
@@ -65,8 +66,21 @@ attributes = [
 scatter_matrix(loan_status[attributes], figsize=(12, 8))
 ```
 
-The graph above is a correlation matrix shown in terms of graphs. The columns used are age, income, loan percent income, credit score, employment experience, and loan amount. From the graph we can see that multiple graphs are scattered making it hard to find any meaningful patterns just from graphs alone.
+The graph above is a correlation matrix shown in terms of graphs. The columns used are age, income, loan percent income, credit score, employment experience, and loan amount. From the graph we can see that multiple graphs are scattered making it hard to find any meaningful patterns just from graphs alone. But we can see outliers and anomalies from these graphs.
 
+We can see an anomaly in the data in the age group there are some people who are more than 80 years old.
+
+```{python}
+df.loc[df['person_age'] >= 80]
+```
+
+Also, we see an outlier in the person employed experience, some reaching above 100.
+
+```{python} 
+df.loc[df['person_emp_exp'] >= 100]
+```
+
+And finally individuals who have an abnormally large income and abnormally low income we are going to ignore that and accept them because they are within the realm of possibilities but at the extreme level.
 
 ## Preparing for Data For Machine Learning 
 I am gonna apply both OrdinalEncoder, OneHotEncoder, and StandardScaler to our inputs data set.
@@ -182,13 +196,16 @@ tree_rmse = mean_squared_error(y_labels, tree_pred)
 print(f"The RMSE of DecisionTree regression is: {tree_rmse}")
 ```
 
-We can instantly notice that the Decision Tree has an abnormal erro rate of 0. This means it is overfitting that data to solve this we are going to use cross validation. For that we are going to use Scikit-Learn's K-fold cross validation feature.
+We can instantly notice that the Decision Tree has an abnormal error rate of 0. This means it is overfitting that data to solve this we are going to use cross validation. For that we are going to use Scikit-Learn's K-fold cross validation feature.
 
 ```{python} 
 from sklearn.model_selection import cross_val_score
 
-scores = cross_val_score(
+lin_scores = cross_val_score(
     lin_reg, X_transformed, y_labels, scoring="neg_mean_squared_error", cv=10
+)
+tree_scores = cross_val_score(
+  tree_reg, X_transformed, y_labels, scoring="neg_mean_squared_error", cv=10
 )
 
 
@@ -198,8 +215,8 @@ def display_scores(scores):
     print("Standard deviation:", scores.std())
 
 
-linear_rmse_scores = np.sqrt(-scores)
-tree_rmse_scores = np.sqrt(-scores)
+linear_rmse_scores = np.sqrt(-lin_scores)
+tree_rmse_scores = np.sqrt(-tree_scores)
 
 print("------LinearRegression-------")
 display_scores(linear_rmse_scores)
@@ -207,3 +224,85 @@ print("\n")
 print("------DecisionTreeRegressor-------")
 display_scores(tree_rmse_scores)
 ```
+
+### Ensemble Models
+We are going to use simple ensemble models with the purpose of seeing whether using ensemble methods are better compared to linear regression and decision tree. 
+
+The ensemble method we are going to use is Random Forests which works by training many Decision Trees on random subsets of the features, then averaging out their predictions.
+
+```{python}
+from sklearn.ensemble import RandomForestRegressor
+
+forest_reg = RandomForestRegressor(n_estimators=100, random_state=42)
+forest_reg.fit(X_transformed, y_labels)
+
+forest_pred = forest_reg.predict(X_transformed)
+forest_mse = mean_squared_error(y_labels, forest_pred)
+forest_rsme = np.sqrt(forest_mse)
+print(f"This is the RMSE of Forest Regression: {forest_rsme}")
+```
+
+```{python}
+forest_scores = cross_val_score(forest_reg, X_transformed, y_labels, scoring="neg_mean_squared_error", cv=10)
+forest_rmse_scores = np.sqrt(-forest_scores)
+display_scores(forest_rmse_scores)
+```
+
+From the looks of it Random Forests looks very promising. However, not that the score on the training set is still much lower than on the validation sets, meaning that the model is still overfitting the training set. We can fine-tune Forest Regressor using the `RandomizedSearchCV` class from Scikit-Learn which searches a range of parameters and finds the best parameters.
+
+```{python}
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+parameter_distribs = {
+  'n_estimators': randint(low=1, high=200),
+  'max_features': randint(low=1, high=20)
+}
+
+forest_random_search = RandomizedSearchCV(
+  forest_reg,
+  param_distributions=parameter_distribs, 
+  n_iter=10,
+  cv=5, 
+  scoring="neg_mean_squared_error",
+)
+forest_random_search.fit(X_transformed, y_labels)
+
+cvres = forest_random_search.cv_results_
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+  print(np.sqrt(-mean_score), params)
+```
+
+From here we can see the best parameters of Random Forest model, we can also see each feature.
+
+```{python}
+importances = forest_random_search.best_estimator_.feature_importances_
+
+feature_importance_df = pd.DataFrame({
+  'feature': X_transformed.columns,
+  'importance': importances,
+})
+feature_importance_df = feature_importance_df.sort_values('importance', ascending=False)
+
+feature_importance_df
+```
+
+## Evaluate Models
+After cleaning and fine-tuning our Random Forest we now evaluate models using the test set prepared beforehand.
+
+```{python}
+final_model = forest_random_search.best_estimator_
+
+X_test = strat_test_set.drop("loan_status", axis=1)
+Y_test = strat_test_set["loan_status"].copy()
+
+X_test_prepared = pipe.fit_transform(X_test)
+final_predictions = final_model.predict(X_test_prepared)
+
+final_mse = mean_squared_error(Y_test, final_predictions)
+final_rmse = np.sqrt(final_mse)
+
+final_rmse
+```
+
+Here we can see the predicted RMSE of the Random Forest with the best parameters we had found.
