@@ -1,0 +1,55 @@
+---
+title: "Unemployemnt Rate for 15+"
+author: "Just1a2Noob"
+format:
+  dashboard:
+    scrolling: true
+    nav-buttons: 
+      - icon: github
+        href: https://github.com/Just1a2Noob/Independent_Projects/
+      - icon: linkedin
+        href: https://www.linkedin.com/
+---
+
+
+# Dataset
+
+```{python}
+import pandas as pd
+from itables import show
+
+df = pd.read_csv("aged_15plus_employment_rate_percent.csv")
+show(df, buttons=['copy', 'excel', 'pdf'])
+```
+
+# Trends
+
+```{python}
+import plotly.express as px
+
+melt_df = df.melt(
+  id_vars='country',
+  var_name='Year',
+  value_name='Value'
+)
+
+selected_country = 'Indonesia'
+melt_df['Year'] = melt_df['Year'].astype(int)
+filtered_df = melt_df[melt_df['country'] == selected_country]
+
+fig = px.line(
+  filtered_df,
+  x='Year',
+  y='Value',
+  title=f'Unemployment Trend for {selected_country} Over Years',
+  labels={'Value': 'Metric'}
+)
+
+fig.update_layout(
+  xaxis_title='Year',
+  yaxis_title='Metric',
+  showlegend=False
+)
+
+fig.show()
+```
