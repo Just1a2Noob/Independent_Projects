@@ -1,0 +1,140 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Sentiment Analysis with NLTK and HuggingFace Transformers\"\n",
+        "author: \"Just1a2Noob\"\n",
+        "format:\n",
+        "  html:\n",
+        "    theme: zephyr\n",
+        "    toc: true\n",
+        "    code-fold: true\n",
+        "    code-summary: \"Show the code\"\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Setup\n"
+      ],
+      "id": "b60d1dc6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "\n",
+        "plt.style.use('ggplot')\n",
+        "\n",
+        "import nltk\n",
+        "nltk.download('punkt_tab')\n",
+        "nltk.download('vader_lexicon')"
+      ],
+      "id": "8bc55f67",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df = pd.read_csv(\"output.csv\")\n",
+        "df.head()"
+      ],
+      "id": "2e23a413",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df[\"is_positive\"].value_counts()"
+      ],
+      "id": "5dfaab89",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn.preprocessing import OrdinalEncoder\n",
+        "\n",
+        "enc = OrdinalEncoder(categories=[['Negative', 'Positive']])\n",
+        "df[\"is_positive\"] = enc.fit_transform(df[[\"is_positive\"]]).astype(int)\n",
+        "\n",
+        "ax = df[\"is_positive\"].value_counts().sort_index().plot(\n",
+        "  kind='bar', \n",
+        "  title='Negative and Positive Reviews',\n",
+        "  figsize=(10, 5)\n",
+        ")\n",
+        "\n",
+        "ax.set_ylim(bottom=95000, top=110000)\n",
+        "ax.grid(axis='y', linestyle='--', alpha=0.7)\n",
+        "\n",
+        "plt.show()"
+      ],
+      "id": "f2f5fce1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# VADER Model\n",
+        "VADER model uses the \"bag of words\" approach:\n",
+        "1. Stop words are removed.\n",
+        "2. Each word is scored and combined to a total score.\n",
+        "3. Doesn't account for context but instead per-word.\n"
+      ],
+      "id": "54288677"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from nltk.sentiment import SentimentIntensityAnalyzer\n",
+        "\n",
+        "sia = SentimentIntensityAnalyzer()\n",
+        "\n",
+        "# Run the polarity score on the entire dataset\n",
+        "results = {}\n",
+        "for i, row in df.iterrows():\n",
+        "    try:\n",
+        "        text = str(row['content'])\n",
+        "        myid = row['id']\n",
+        "        results[myid] = sia.polarity_scores(text)\n",
+        "    except (TypeError, AttributeError):\n",
+        "        # store a default value or skip\n",
+        "        results[row['id']] = {'compound': 0, 'pos': 0, 'neu': 0, 'neg': 0}\n",
+        "\n",
+        "vaders = pd.DataFrame(results).T\n",
+        "vaders =vaders.reset_index().rename(columns={'index':'id'})\n",
+        "\n",
+        "vaders = vaders.merge(df, how='left')\n",
+        "vaders.head()"
+      ],
+      "id": "cbefe874",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/just1a2noob/.local/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

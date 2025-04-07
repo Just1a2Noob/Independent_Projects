@@ -1,0 +1,98 @@
+---
+title: "Simple sentiment analysis"
+author: "Just1a2Noob"
+format:
+  html:
+    theme: zephyr
+    toc: true
+    code-fold: true
+    code-summary: "Show the code"
+jupyter: python3
+---
+
+# Initial Setup
+
+```{python}
+import pandas as pd 
+import numpy as np
+
+df = pd.read_csv("output.csv")
+df.shape
+```
+
+```{python}
+df.head()
+```
+
+## Data Cleaning
+
+```{python}
+import re 
+import nltk
+
+nltk.download('stopwords') 
+
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+
+ps = PorterStemmer()
+
+all_stopwords = stopwords.words('english')
+all_stopwords.remove('not')
+```
+
+```{python}
+corpus = []
+
+# Some datatypes in the content are integer,
+# To fix this we change the content type to str
+df['content'] = df['content'].astype(str)
+
+for i in range(0, 201151):
+  review = re.sub('[^a-zA-Z]', ' ', df['content'][i])
+  review = review.lower()
+  review = review.split()
+  review = [ps.stem(word) for word in review if not word in set(all_stopwords)]
+  review = ' '.join(review)
+  corpus.append(review)
+
+corpus
+```
+
+## Data Tranformation
+
+```{python}
+from sklearn.feature_extraction.text import CountVectorizer
+cv = CountVectorizer(max_features=1420)
+
+x = cv.fit_transform(corpus).toarray()
+y = df.iloc[:, -1].values
+```
+
+## Dividing dataset into training and test set
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, Y_train, Y_test = train_test_split(x, y, test_size=0.2, random_state=0)
+```
+
+# Model Fitting (Naive Bayes)
+
+```{python}
+from sklearn.naive_bayes import GaussianNB
+classifier = GaussianNB()
+classifier.fit(X_train, Y_train)
+```
+
+# Model performance
+
+```{python}
+y_pred = classifier.predict(X_test)
+
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(Y_test, y_pred)
+
+print(cm)
+accuracy_score(Y_test, y_pred)
+```

@@ -1,0 +1,83 @@
+---
+title: "Sentiment Analysis with NLTK and HuggingFace Transformers"
+author: "Just1a2Noob"
+format:
+  html:
+    theme: zephyr
+    toc: true
+    code-fold: true
+    code-summary: "Show the code"
+jupyter: python3
+---
+
+# Setup
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.style.use('ggplot')
+
+import nltk
+nltk.download('punkt_tab')
+nltk.download('vader_lexicon')
+```
+
+```{python}
+df = pd.read_csv("output.csv")
+df.head()
+```
+
+```{python}
+df["is_positive"].value_counts()
+```
+
+```{python}
+from sklearn.preprocessing import OrdinalEncoder
+
+enc = OrdinalEncoder(categories=[['Negative', 'Positive']])
+df["is_positive"] = enc.fit_transform(df[["is_positive"]]).astype(int)
+
+ax = df["is_positive"].value_counts().sort_index().plot(
+  kind='bar', 
+  title='Negative and Positive Reviews',
+  figsize=(10, 5)
+)
+
+ax.set_ylim(bottom=95000, top=110000)
+ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+plt.show()
+```
+
+# VADER Model
+VADER model uses the "bag of words" approach:
+1. Stop words are removed.
+2. Each word is scored and combined to a total score.
+3. Doesn't account for context but instead per-word.
+
+```{python}
+from nltk.sentiment import SentimentIntensityAnalyzer
+
+sia = SentimentIntensityAnalyzer()
+
+# Run the polarity score on the entire dataset
+results = {}
+for i, row in df.iterrows():
+    try:
+        text = str(row['content'])
+        myid = row['id']
+        results[myid] = sia.polarity_scores(text)
+    except (TypeError, AttributeError):
+        # store a default value or skip
+        results[row['id']] = {'compound': 0, 'pos': 0, 'neu': 0, 'neg': 0}
+
+vaders = pd.DataFrame(results).T
+vaders =vaders.reset_index().rename(columns={'index':'id'})
+
+vaders = vaders.merge(df, how='left')
+vaders.head()
+```
+
