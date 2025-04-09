@@ -1,2 +1,4 @@
-POST/test_files/
+.gitignore
+POST/test_files
 POST/test.qmd
+POST/test.html
