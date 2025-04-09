@@ -1,0 +1,138 @@
+---
+title: "Cleaning Steps"
+author: "Just1a2Noob"
+format:
+  html:
+    theme: zephyr
+    toc: true
+    code-fold: true
+    code-summary: "Show the code"
+jupyter: python3
+---
+
+# Initial Setup
+
+```{python}
+from scipy.io import arff
+import pandas as pd
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+file_path = 'phpkIxskf.arff'
+data, meta = arff.loadarff(file_path)
+
+df = pd.DataFrame(data)
+for column in df.columns:
+    if df[column].dtype == object:
+        df[column] = df[column].str.decode('utf-8')
+
+df.head()
+```
+
+## Transforming Headers
+
+### Before 
+
+```{python}
+df.head()
+```
+
+### After
+
+```{python}
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OneHotEncoder
+
+class NameChanger(BaseEstimator, TransformerMixin):
+    # Changing the headers with the coressponding description to make more sense.
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        return X.rename(
+            columns= {'V1':'age', 
+              'V2':'job', 
+              'V3':'marital',
+              'V4':'education',
+              'V5':'credit_default',
+              'V6':'balance',
+              'V7':'housing_loan',
+              'V8':'personal_loan',
+              'V9':'communication_type',
+              'V10':'last_contact_day',
+              'V11':'last_contact_month',
+              'V12':'last_contact_duration',
+              'V13':'number_of_contacts',
+              'V14':'pdays',
+              'V15':'previous_contacts',
+              'V16':'previous_outcome',
+              'Class':'term_deposit'}, inplace=True
+        )
+
+NameChanger().fit_transform(df)
+df.head()
+```
+
+## Combining day and month to become a new column
+
+### Before
+
+```{python}
+df[['last_contact_day', 'last_contact_month']]
+```
+
+### After
+
+```{python}
+class Contact_Date(BaseEstimator, TransformerMixin):
+    # Combining last_contact_day and last_contact_month making a new column called last_contact_date
+    # While also dropping last_contact_day and last_contact month as it is assumed not needed
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        X['last_contact_date'] = X['last_contact_day'].astype(int).astype(str) + ' ' + X['last_contact_month'].str.capitalize()
+        X['last_contact_date'] = pd.to_datetime(X['last_contact_date'], format='%d %b')
+        
+        # This line below is to solve the error when fitting the dataset to a Logistic Regression. This changes the date to become ordinal instead of the normal format
+        X['last_contact_date'] = X['last_contact_date'].apply(lambda x: x.toordinal())
+        
+        # Drop the original columns
+        X.drop(['last_contact_day', 'last_contact_month'], axis=1, inplace=True)
+        
+        # Return the modified DataFrame
+        return X
+
+Contact_Date().fit_transform(df)
+df[['last_contact_date']]
+```
+
+## Convert yes or no to binary 
+
+### Before
+
+```{python}
+list_yes_no = ['credit_default', 'housing_loan', 'personal_loan']
+df[list_yes_no].head()
+```
+
+### After
+
+```{python}
+class Convert_Binary(BaseEstimator, TransformerMixin):
+    # Applying OrdinalEncoder to any columns with the values of 'yes' or 'no'
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        for col in X.columns:
+            if set(X[col].unique()) == {'yes', 'no'}:
+                enc = OrdinalEncoder(categories=[['no', 'yes']])
+                X[col] = enc.fit_transform(X[[col]]).astype(int)
+        return X
+
+Convert_Binary().fit_transform(df)
+df[list_yes_no].head()
+```
