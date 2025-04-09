@@ -136,3 +136,93 @@ class Convert_Binary(BaseEstimator, TransformerMixin):
 Convert_Binary().fit_transform(df)
 df[list_yes_no].head()
 ```
+
+## Applying OrdinalEncoder to term_deposit column
+
+### Before
+
+```{python}
+df[['term_deposit']]
+```
+
+### After
+
+```{python}
+class Target_Encoder(BaseEstimator, TransformerMixin):
+    # WARNING: NameChanger() must be applied first
+    # Applying OrdinalEncoder to X['term_deposit'] to normalize the data
+    def fit(self, X, y=None):
+        return self
+        
+    def transform(self, X):
+        enc = OrdinalEncoder()
+        X['term_deposit'] = enc.fit_transform(X[['term_deposit']]).astype(int)
+        return X
+
+Target_Encoder().fit_transform(df)
+df[['term_deposit']]
+```
+
+## Applying OneHotEncoder for columns with categorical data
+
+### Before
+
+```{python}
+list_categorical = ['job', 'marital', 'education', 'communication_type']
+
+df[list_categorical].head()
+```
+
+### After 
+
+```{python}
+class FeatureEncoder(BaseEstimator, TransformerMixin):
+    # WARNING: last_contact_date and Target_Encoder must be applied first
+    # Applies OneHotEncoder to any columns that has dtype = object and does NOT have 'yes' or 'no values
+    # While also creating a a column header name based on its unique values + original column header name
+    # Then dropping the original column from the dataframe
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        ohe = OneHotEncoder()
+        for col in X.columns:
+            if X[col].dtype == 'object' and set(X[col].unique()) != {'yes', 'no'}:
+                unique_values = X[col].unique()
+                column_names = [str(value) for value in unique_values]
+
+                matrix = ohe.fit_transform(X[[col]]).toarray()
+                for i in range(len(matrix.T)):
+                    X[str(col) + '_' + column_names[i]] = matrix.T[i]
+
+                X = X.drop([col], axis=1)
+        return X
+
+
+FeatureEncoder().fit_transform(df)
+df.head()
+```
+
+## Additional Tweaks
+
+```{python}
+class Floats_to_Ints(BaseEstimator, TransformerMixin):
+    # Converting any columns with the dtype floats to integers
+    def fit(self, X, y=None):
+        return self
+        
+    def transform(self, X):
+        for col in X.columns:
+            if X[col].dtype == 'float64':
+                X[col] = X[col].astype(int)
+        return X
+
+class Reindexing(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        # Putting term_deposit to the last column
+        X['term_deposit'] = X.pop('term_deposit')
+        return X
+```
