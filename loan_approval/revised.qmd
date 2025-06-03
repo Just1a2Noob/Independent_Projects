@@ -1,0 +1,105 @@
+---
+title: "Data Analysis using Regression Models"
+author: "Just1a2Noob"
+format:
+  html:
+    theme: zephyr
+    toc: true
+    code-fold: true
+    code-summary: "Show the code"
+jupyter: python3
+---
+
+# Initial setup
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("loan_data.csv")
+df.head()
+```
+
+# Preview
+
+```{python}
+df.hist(bins=100, figsize=(20, 15))
+plt.show()
+```
+
+## Age
+
+```{python}
+sns.boxplot(x=df['person_age'])
+df = df.loc[df['person_age'] <= 80]
+```
+
+We are going to put a maximum on the age, where its 80. Meaning any age values that are above 80 are removed from the dataset
+
+```{python}
+df = df[df['person_age'] <= 80]
+```
+
+## Loan amount
+
+```{python}
+sns.boxplot(x=df['loan_amnt'])
+```
+
+From the boxplot, we can see the `loan_amnt` doesn't follow the normal distribution but have multiple values extreme values. In this case I will set any `loan_amnt` values above 3 standard deviations above the mean.
+
+```{python}
+loan_amnt_wage = df['loan_amnt'].mean()
+std_dev = df['loan_amnt'].std()
+threshold = loan_amnt_wage + (3 * std_dev)
+
+df['loan_amnt'] = np.where(df['loan_amnt'] > threshold, loan_amnt_wage, df['loan_amnt'])
+```
+
+Below is the boxplot after the transformation
+
+```{python}
+sns.boxplot(x=df['loan_amnt'])
+```
+
+## Person income
+
+```{python}
+sns.boxplot(x=df['person_income'])
+
+df['person_income'].mean()
+```
+
+```{python}
+sns.displot(df['person_income'])
+```
+
+Given the above graphs, we can see that the `person_income` column is heavily skewed, resulting in an abnormally high mean, we can use the median to see what is the central tendency of this column:
+
+```{python}
+median_income = df['person_income'].median()
+
+print(f"{median_income} / 10^6: {median_income/1000000}")
+# TODO: Figure out what to do with outliers in person_income column
+```
+
+We are going to remove any values above `0.5`.
+
+## Person employed experience
+
+```{python}
+sns.boxplot(x=df['person_emp_exp'])
+```
+
+## Loan Interest Rate
+
+```{python}
+sns.boxplot(x=df['loan_int_rate'])
+```
+
+## Loan percentage compared to annual income 
+```{python}
+sns.boxplot(x=df['loan_percent_income'])
+```
