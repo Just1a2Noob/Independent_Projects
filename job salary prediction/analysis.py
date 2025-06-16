@@ -12,7 +12,7 @@ def _():
     import matplotlib.pyplot as plt
     import seaborn as sns
     import re
-    return mo, pd, plt, re, sns
+    return mo, np, pd, plt, re, sns
 
 
 @app.cell(hide_code=True)
@@ -144,7 +144,7 @@ def _(df_train, plt, sns):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Salary""")
+    mo.md(r"""## Salary Preprocessing""")
     return
 
 
@@ -154,15 +154,15 @@ def _(pd, re):
         """
         Extract minimum and maximum salaries using NLP-like approach.
         Instead of complex regex, we'll tokenize and analyze numerically.
-    
+
         Parameters:
         df (pandas.DataFrame): The dataframe containing salary data
         column_name (str): The name of the column containing salary strings
-    
+
         Returns:
         tuple: Two lists (min_salaries, max_salaries) containing extracted salary values
         """
-    
+
         def extract_all_numbers_with_context(text: str): #-> List[Tuple[int, str, int, int]]:
             """
             Extract all numbers from text with their context.
@@ -170,29 +170,29 @@ def _(pd, re):
             """
             if not text:
                 return []
-        
+
             # Find all numbers (with commas, decimals)
             number_pattern = r'\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+'
-        
+
             numbers_with_context = []
             for match in re.finditer(number_pattern, text):
                 num_str = match.group()
                 start, end = match.span()
-            
+
                 # Get context around the number (10 chars before and after)
                 context_start = max(0, start - 10)
                 context_end = min(len(text), end + 10)
                 context = text[context_start:context_end].lower()
-            
+
                 # Convert to integer
                 try:
                     number = int(num_str.replace(',', '').replace('.', ''))
                     numbers_with_context.append((number, context, start, end))
                 except ValueError:
                     continue
-        
+
             return numbers_with_context
-    
+
         def classify_number_as_salary(number: int, context: str): #-> Tuple[int, float]:
             """
             Classify if a number represents a salary and return confidence score.
@@ -200,12 +200,12 @@ def _(pd, re):
             """
             confidence = 0.0
             adjusted_number = number
-        
+
             # Rule 1: Handle K multiplier
             if 'k' in context and number < 1000:
                 adjusted_number = number * 1000
                 confidence += 0.8
-        
+
             # Rule 2: Realistic salary range
             if 10000 <= adjusted_number <= 500000:
                 confidence += 0.9
@@ -223,100 +223,100 @@ def _(pd, re):
                 if 10000 <= test_val <= 500000:
                     adjusted_number = test_val
                     confidence += 0.7
-        
+
             # Rule 3: Context clues
             salary_keywords = ['salary', 'annum', 'annual', 'yearly', 'pa', 'basic']
             for keyword in salary_keywords:
                 if keyword in context:
                     confidence += 0.3
                     break
-        
+
             # Rule 4: Avoid obviously non-salary numbers
             avoid_keywords = ['tips', 'iro', 'comm', 'bens', '3k per annum']
             for keyword in avoid_keywords:
                 if keyword in context:
                     confidence -= 0.5
-        
+
             return adjusted_number, confidence
-    
+
         def find_salary_range(text: str): #-> Tuple[Optional[int], Optional[int]]:
             """
             Find the most likely salary range from text.
             """
             if not text or pd.isna(text):
                 return None, None
-        
+
             text_lower = text.lower()
-        
+
             # Handle "upto" cases first
             if 'upto' in text_lower or 'up to' in text_lower:
                 numbers = extract_all_numbers_with_context(text)
                 salary_candidates = []
-            
+
                 for num, context, start, end in numbers:
                     adj_num, confidence = classify_number_as_salary(num, context)
                     if confidence > 0.3:
                         salary_candidates.append((adj_num, confidence))
-            
+
                 if salary_candidates:
                     # Take the highest confidence salary
                     best_salary = max(salary_candidates, key=lambda x: x[1])[0]
                     return None, best_salary
-        
+
             # Extract all numbers with context
             numbers = extract_all_numbers_with_context(text)
-        
+
             if not numbers:
                 return None, None
-        
+
             # Classify each number as potential salary
             salary_candidates = []
             for num, context, start, end in numbers:
                 adj_num, confidence = classify_number_as_salary(num, context)
                 if confidence > 0.3:  # Only consider decent confidence
                     salary_candidates.append((adj_num, confidence, start))
-        
+
             if not salary_candidates:
                 return None, None
-        
+
             # Sort by position in text (to maintain order)
             salary_candidates.sort(key=lambda x: x[2])
-        
+
             if len(salary_candidates) == 1:
                 return salary_candidates[0][0], salary_candidates[0][0]
-        
+
             # Look for range indicators
             range_indicators = ['-', '–', 'to', 'between']
             has_range_indicator = any(indicator in text_lower for indicator in range_indicators)
-        
+
             if has_range_indicator and len(salary_candidates) >= 2:
                 # Take first and second highest confidence salaries
                 sorted_by_confidence = sorted(salary_candidates, key=lambda x: x[1], reverse=True)
-            
+
                 # If we have clear winners, use them
                 if len(sorted_by_confidence) >= 2:
                     sal1 = sorted_by_confidence[0][0]
                     sal2 = sorted_by_confidence[1][0]
                     return min(sal1, sal2), max(sal1, sal2)
-        
+
             # Fallback: take the two most confident salaries
             if len(salary_candidates) >= 2:
                 sorted_by_confidence = sorted(salary_candidates, key=lambda x: x[1], reverse=True)
                 sal1 = sorted_by_confidence[0][0]
                 sal2 = sorted_by_confidence[1][0]
                 return min(sal1, sal2), max(sal1, sal2)
-        
+
             return salary_candidates[0][0], salary_candidates[0][0]
-    
+
         # Process each row
         min_salaries = []
         max_salaries = []
-    
+
         for salary_str in df[column_name]:
             min_sal, max_sal = find_salary_range(salary_str)
             min_salaries.append(min_sal)
             max_salaries.append(max_sal)
-    
+
         return min_salaries, max_salaries
     return (extract_salary_ranges,)
 
@@ -354,8 +354,7 @@ def _(df_train, plt, sns):
     salary_min_mean = 159595.28
     salary_max_mean = 191523.37
 
-    df_train['salary_min'].fillna(salary_min_mean, inplace=True)
-    df_train['salary_min'].fillna(salary_max_mean, inplace=True)
+    df_train.dropna(subset=['salary_min'], how='any', axis=0, inplace=True)
 
     # Plot histograms
     plt.figure(figsize=(10, 5))
@@ -371,6 +370,68 @@ def _(df_train, plt, sns):
     plt.xlabel('# Salary in thousands')
     plt.ylabel('Frequency')
     plt.legend()
+    plt.show()
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""### Clustering salary based on category""")
+    return
+
+
+@app.cell
+def _(df_train):
+    from sklearn.cluster import KMeans
+    from sklearn.preprocessing import OneHotEncoder
+
+    # Encoding categories
+    enc = OneHotEncoder(sparse_output=False)
+    enc_category = enc.fit_transform(df_train[['Category']])
+
+    kmeans = KMeans().fit_predict(df_train[['salary_min', 'salary_max']])
+    return (kmeans,)
+
+
+@app.cell
+def _(kmeans, np):
+    unique, counts = np.unique(kmeans, return_counts=True)
+    print(np.asarray((unique, counts)).T)
+    return
+
+
+@app.cell
+def _(df_train, kmeans):
+    df_train['cluster'] = kmeans
+    df_train[['Category', 'cluster', 'SalaryNormalized']]
+    return
+
+
+@app.cell
+def _(df_train, np, plt):
+    import matplotlib.cm as cm
+
+    df0 = df_train[df_train.cluster == 0]
+    df1 = df_train[df_train.cluster == 1]
+    df2 = df_train[df_train.cluster == 2]
+    df3 = df_train[df_train.cluster == 3]
+    df4 = df_train[df_train.cluster == 4]
+    df5 = df_train[df_train.cluster == 5]
+    df6 = df_train[df_train.cluster == 6]
+    df7 = df_train[df_train.cluster == 7]
+
+
+    # dataframes = [df0, df1, df2, df3, df4, df5, df6, df7]
+    dataframes = [df0, df5]
+    x = np.arange(3)
+    ys = [i+x+(i*x)**2 for i in range(3)]
+
+    colors = cm.rainbow(np.linspace(0, 1, len(ys)))
+    for d, y in zip(dataframes, colors):
+        plt.scatter(d.salary_min, d.salary_max, c=y)
+
+    plt.xlabel("Min Salary")
+    plt.ylabel("Max Salary")
     plt.show()
     return
 
