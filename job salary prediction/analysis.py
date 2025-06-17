@@ -150,173 +150,135 @@ def _(mo):
 
 @app.cell
 def _(pd, re):
-    def extract_salary_ranges(df, column_name):
-        """
-        Extract minimum and maximum salaries using NLP-like approach.
-        Instead of complex regex, we'll tokenize and analyze numerically.
+    from typing import List, Tuple, Optional
 
+    def extract_salary_ranges(df, column_name, convert_to_annual=True):
+        """
+        Extract and normalize salary ranges handling different time periods.
+    
         Parameters:
         df (pandas.DataFrame): The dataframe containing salary data
         column_name (str): The name of the column containing salary strings
-
+        convert_to_annual (bool): Whether to convert all values to annual equivalents
+    
         Returns:
         tuple: Two lists (min_salaries, max_salaries) containing extracted salary values
         """
-
-        def extract_all_numbers_with_context(text: str): #-> List[Tuple[int, str, int, int]]:
-            """
-            Extract all numbers from text with their context.
-            Returns: List of (number_value, context_around_number, start_pos, end_pos)
-            """
-            if not text:
-                return []
-
-            # Find all numbers (with commas, decimals)
-            number_pattern = r'\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+'
-
-            numbers_with_context = []
-            for match in re.finditer(number_pattern, text):
-                num_str = match.group()
-                start, end = match.span()
-
-                # Get context around the number (10 chars before and after)
-                context_start = max(0, start - 10)
-                context_end = min(len(text), end + 10)
-                context = text[context_start:context_end].lower()
-
-                # Convert to integer
-                try:
-                    number = int(num_str.replace(',', '').replace('.', ''))
-                    numbers_with_context.append((number, context, start, end))
-                except ValueError:
-                    continue
-
-            return numbers_with_context
-
-        def classify_number_as_salary(number: int, context: str): #-> Tuple[int, float]:
-            """
-            Classify if a number represents a salary and return confidence score.
-            Returns: (adjusted_number, confidence_score)
-            """
-            confidence = 0.0
-            adjusted_number = number
-
-            # Rule 1: Handle K multiplier
-            if 'k' in context and number < 1000:
-                adjusted_number = number * 1000
-                confidence += 0.8
-
-            # Rule 2: Realistic salary range
-            if 10000 <= adjusted_number <= 500000:
-                confidence += 0.9
-            elif 1000 <= adjusted_number <= 9999:
-                # Could be salary in K format
-                if 'k' not in context:
-                    # Maybe it should be multiplied by 1000
-                    test_val = adjusted_number * 1000
-                    if 10000 <= test_val <= 500000:
-                        adjusted_number = test_val
-                        confidence += 0.6
-            elif adjusted_number < 1000:
-                # Very likely needs K multiplier
-                test_val = adjusted_number * 1000
-                if 10000 <= test_val <= 500000:
-                    adjusted_number = test_val
-                    confidence += 0.7
-
-            # Rule 3: Context clues
-            salary_keywords = ['salary', 'annum', 'annual', 'yearly', 'pa', 'basic']
-            for keyword in salary_keywords:
-                if keyword in context:
-                    confidence += 0.3
-                    break
-
-            # Rule 4: Avoid obviously non-salary numbers
-            avoid_keywords = ['tips', 'iro', 'comm', 'bens', '3k per annum']
-            for keyword in avoid_keywords:
-                if keyword in context:
-                    confidence -= 0.5
-
-            return adjusted_number, confidence
-
-        def find_salary_range(text: str): #-> Tuple[Optional[int], Optional[int]]:
-            """
-            Find the most likely salary range from text.
-            """
+    
+        def detect_time_period(text: str) -> str:
+            """Detect the time period from context clues."""
+            text_lower = text.lower()
+        
+            if any(word in text_lower for word in ['/hr', 'per hour', 'hourly', 'ph']):
+                return 'hourly'
+            elif any(word in text_lower for word in ['/week', 'per week', 'weekly', 'pw']):
+                return 'weekly'
+            elif any(word in text_lower for word in ['/month', 'per month', 'monthly', 'pm']):
+                return 'monthly'
+            elif any(word in text_lower for word in ['/year', 'per year', '/annum', 'annum', 'annual', 'pa']):
+                return 'annual'
+            else:
+                # Default logic based on number size
+                numbers = re.findall(r'\d+\.?\d*', text)
+                if numbers:
+                    avg_num = sum(float(n) for n in numbers) / len(numbers)
+                    if avg_num < 50:
+                        return 'hourly'
+                    elif avg_num < 2000:
+                        return 'weekly'
+                    elif avg_num < 10000:
+                        return 'monthly'
+                    else:
+                        return 'annual'
+                return 'unknown'
+    
+        def convert_to_annual_salary(amount: float, period: str) -> int:
+            """Convert amount to annual equivalent."""
+            if not convert_to_annual:
+                return int(amount)
+            
+            conversion_factors = {
+                'hourly': 2080,    # 40 hours/week * 52 weeks
+                'weekly': 52,      # 52 weeks/year
+                'monthly': 12,     # 12 months/year
+                'annual': 1,       # Already annual
+                'unknown': 1       # Assume annual
+            }
+        
+            return int(amount * conversion_factors.get(period, 1))
+    
+        def extract_numbers_with_decimals(text: str) -> List[float]:
+            """Extract all numbers including decimals."""
+            # Find numbers with optional decimals
+            pattern = r'\d+\.?\d*'
+            numbers = re.findall(pattern, text)
+            return [float(n) for n in numbers if float(n) > 0]
+    
+        def find_salary_range(text: str) -> Tuple[Optional[int], Optional[int]]:
+            """Extract salary range from text."""
             if not text or pd.isna(text):
                 return None, None
-
-            text_lower = text.lower()
-
-            # Handle "upto" cases first
-            if 'upto' in text_lower or 'up to' in text_lower:
-                numbers = extract_all_numbers_with_context(text)
-                salary_candidates = []
-
-                for num, context, start, end in numbers:
-                    adj_num, confidence = classify_number_as_salary(num, context)
-                    if confidence > 0.3:
-                        salary_candidates.append((adj_num, confidence))
-
-                if salary_candidates:
-                    # Take the highest confidence salary
-                    best_salary = max(salary_candidates, key=lambda x: x[1])[0]
-                    return None, best_salary
-
-            # Extract all numbers with context
-            numbers = extract_all_numbers_with_context(text)
-
+        
+            # Detect time period
+            period = detect_time_period(text)
+        
+            # Extract all numbers
+            numbers = extract_numbers_with_decimals(text)
+        
             if not numbers:
                 return None, None
-
-            # Classify each number as potential salary
-            salary_candidates = []
-            for num, context, start, end in numbers:
-                adj_num, confidence = classify_number_as_salary(num, context)
-                if confidence > 0.3:  # Only consider decent confidence
-                    salary_candidates.append((adj_num, confidence, start))
-
-            if not salary_candidates:
+        
+            # Filter out obviously wrong numbers (like years, percentages)
+            if period == 'annual':
+                # For annual, keep numbers > 1000
+                filtered_numbers = [n for n in numbers if n >= 1000 and n <= 500000]
+            elif period == 'monthly':
+                # For monthly, keep reasonable monthly salaries
+                filtered_numbers = [n for n in numbers if n >= 100 and n <= 50000]
+            elif period == 'weekly':
+                # For weekly, keep reasonable weekly amounts
+                filtered_numbers = [n for n in numbers if n >= 50 and n <= 5000]
+            elif period == 'hourly':
+                # For hourly, keep reasonable hourly rates
+                filtered_numbers = [n for n in numbers if n >= 3 and n <= 100]
+            else:
+                filtered_numbers = numbers
+        
+            if not filtered_numbers:
                 return None, None
-
-            # Sort by position in text (to maintain order)
-            salary_candidates.sort(key=lambda x: x[2])
-
-            if len(salary_candidates) == 1:
-                return salary_candidates[0][0], salary_candidates[0][0]
-
-            # Look for range indicators
-            range_indicators = ['-', '–', 'to', 'between']
-            has_range_indicator = any(indicator in text_lower for indicator in range_indicators)
-
-            if has_range_indicator and len(salary_candidates) >= 2:
-                # Take first and second highest confidence salaries
-                sorted_by_confidence = sorted(salary_candidates, key=lambda x: x[1], reverse=True)
-
-                # If we have clear winners, use them
-                if len(sorted_by_confidence) >= 2:
-                    sal1 = sorted_by_confidence[0][0]
-                    sal2 = sorted_by_confidence[1][0]
-                    return min(sal1, sal2), max(sal1, sal2)
-
-            # Fallback: take the two most confident salaries
-            if len(salary_candidates) >= 2:
-                sorted_by_confidence = sorted(salary_candidates, key=lambda x: x[1], reverse=True)
-                sal1 = sorted_by_confidence[0][0]
-                sal2 = sorted_by_confidence[1][0]
-                return min(sal1, sal2), max(sal1, sal2)
-
-            return salary_candidates[0][0], salary_candidates[0][0]
-
+        
+            # Determine min and max
+            if len(filtered_numbers) == 1:
+                min_val = max_val = filtered_numbers[0]
+            else:
+                # Look for range indicators
+                text_lower = text.lower()
+                has_range = any(indicator in text_lower for indicator in ['-', '–', 'to', 'from'])
+            
+                if has_range:
+                    # Take smallest and largest as range
+                    min_val = min(filtered_numbers)
+                    max_val = max(filtered_numbers)
+                else:
+                    # If no clear range, take first two numbers
+                    min_val = filtered_numbers[0]
+                    max_val = filtered_numbers[1] if len(filtered_numbers) > 1 else filtered_numbers[0]
+        
+            # Convert to annual equivalents
+            min_annual = convert_to_annual_salary(min_val, period)
+            max_annual = convert_to_annual_salary(max_val, period)
+        
+            return min_annual, max_annual
+    
         # Process each row
         min_salaries = []
         max_salaries = []
-
+    
         for salary_str in df[column_name]:
             min_sal, max_sal = find_salary_range(salary_str)
             min_salaries.append(min_sal)
             max_salaries.append(max_sal)
-
+    
         return min_salaries, max_salaries
     return (extract_salary_ranges,)
 
@@ -334,12 +296,6 @@ def _(df_train, extract_salary_ranges):
 @app.cell
 def _(df_train):
     df_train[['salary_min', 'salary_max']].isnull().sum()
-    return
-
-
-@app.cell
-def _(df_train):
-    df_train[df_train['Id'] == 34781787]
     return
 
 
@@ -408,31 +364,15 @@ def _(df_train, kmeans):
 
 
 @app.cell
-def _(df_train, np, plt):
-    import matplotlib.cm as cm
-
-    df0 = df_train[df_train.cluster == 0]
-    df1 = df_train[df_train.cluster == 1]
-    df2 = df_train[df_train.cluster == 2]
-    df3 = df_train[df_train.cluster == 3]
-    df4 = df_train[df_train.cluster == 4]
-    df5 = df_train[df_train.cluster == 5]
-    df6 = df_train[df_train.cluster == 6]
-    df7 = df_train[df_train.cluster == 7]
+def _(df_train):
+    df_train.Category.unique()
+    return
 
 
-    # dataframes = [df0, df1, df2, df3, df4, df5, df6, df7]
-    dataframes = [df0, df5]
-    x = np.arange(3)
-    ys = [i+x+(i*x)**2 for i in range(3)]
-
-    colors = cm.rainbow(np.linspace(0, 1, len(ys)))
-    for d, y in zip(dataframes, colors):
-        plt.scatter(d.salary_min, d.salary_max, c=y)
-
-    plt.xlabel("Min Salary")
-    plt.ylabel("Max Salary")
-    plt.show()
+@app.cell
+def _(df_train):
+    df_train['salary_mean'] = (df_train['salary_min'] + df_train['salary_max'])/2
+    df_train['SalaryRaw']
     return
 
 
