@@ -1,25 +1,24 @@
-import tkinter
-from tkinter import ttk
-from tkinter import messagebox
-import sys
-from datetime import datetime
-import psycopg2
 import subprocess
+import sys
+import tkinter
+from datetime import datetime
+from tkinter import messagebox, ttk
+
+import psycopg
 
 # Getting the username and password from connectio.py
 username = sys.argv[1] if len(sys.argv) > 1 else ""
 password_u = sys.argv[2] if len(sys.argv) > 2 else ""
-db_name="hist_data"
-host = 'localhost'
-port = '5432'
+db_name = "hist_data"
+host = "localhost"
+port = "5432"
+
 
 def open_table():
     # Replace the value of file_to_run with the name of the Python file you want to run
     file_to_run = r"C:\Users\ThinkPad\Documents\Anaconda_RootDIR\Projects\tkinter_form\table_show.py"
-    command = ['python', file_to_run, username, password_u]
+    command = ["python", file_to_run, username, password_u]
     subprocess.run(command, check=True)
-
-
 
 
 def clear_entries_and_comboboxes():
@@ -32,10 +31,11 @@ def clear_entries_and_comboboxes():
                 widget.set("")  # Reset Combobox selection
 
 
-
 # Form for entering data
 def enter_data():
-    conn = psycopg2.connect(dbname=db_name, user=username, host=host, port=port, password=password_u)
+    conn = psycopg2.connect(
+        dbname=db_name, user=username, host=host, port=port, password=password_u
+    )
     cur = conn.cursor()
     pengeluaran = pengeluaran_entry.get()
     komponen_dana_bos = komponen_dana_bos_combobox.get()
@@ -51,13 +51,16 @@ def enter_data():
         conn.close()
         return clear_entries_and_comboboxes()
     else:
-        tkinter.messagebox.showwarning(title="Error", message="Format tanggal harus dengan bentuk Tahun-Bulan-Hari, contoh 2014-08-17")
+        tkinter.messagebox.showwarning(
+            title="Error",
+            message="Format tanggal harus dengan bentuk Tahun-Bulan-Hari, contoh 2014-08-17",
+        )
 
 
 def check_date_format(date_str):
     try:
         # Attempt to parse the input string into a datetime object
-        datetime.strptime(date_str, '%Y-%m-%d')
+        datetime.strptime(date_str, "%Y-%m-%d")
         return True
     except ValueError:
         return False
@@ -69,6 +72,7 @@ def clear_example(event):
     if tanggal_entry.get() == "TAHUN-BULAN-HARI":
         tanggal_entry.delete(0, tkinter.END)
 
+
 def show_example(event):
     # Function to show the example text if Entry is left empty
     if not tanggal_entry.get():
@@ -77,8 +81,10 @@ def show_example(event):
 
 def show_description(event):
     # Function to display description based on selected option
-    selected_option = komponen_dana_bos_combobox.get()  # Get the selected option from the Combobox
-    
+    selected_option = (
+        komponen_dana_bos_combobox.get()
+    )  # Get the selected option from the Combobox
+
     # Define descriptions associated with each option
     # This is from https://ditsmp.kemdikbud.go.id/daftar-terbaru-komponen-penggunaan-bos-reguler/
     descriptions = {
@@ -93,13 +99,13 @@ def show_description(event):
         "Penyediaan alat multimedia pembelajaran": "Penyediaan alat multimedia pembelajaran seperti pencetakan atau pengadaan modul, penyusunan modul interaktif dan media pembelajaran berbasis teknologi informasi dan komunikasi, pengadaan alat keterampilan, bahan praktik keterampilan, komputer desktop dan/atau laptop untuk digunakan dalam proses pembelajaran; dan atau alat multimedia pembelajaran lainnya yang relevan dalam rangka menunjang pembelajaran berbasis teknologi informasi dan komunikasi. ",
         "Penyelenggaraan kegiatan peningkatan kompetensi keahlian": "Kegiatan yang relevan dalam rangka meningkatkan kompetensi keahlian menjadi salah satu komponen yang dapat menggunakan dana BOS Reguler yang diterima satuan pendidikan.",
         "Penyelenggaraan kegiatan dalam mendukung keterserapan lulusan": "Kegiatan yang relevan dalam rangka mendukung keterserapan lulusan menjadi salah satu komponen yang dapat menggunakan dana BOS Reguler yang diterima satuan pendidikan",
-        "Pembayaran honor": "Pembayaran honor dapat digunakan paling banyak 50% dari keseluruhan jumlah alokasi Dana BOS Reguler yang diterima oleh Satuan Pendidikan. Pembayaran honor dapat diberikan kepada guru berstatus bukan aparatur sipil negara, tercatat pada Dapodik, memiliki nomor unik pendidik dan tenaga kependidikan, dan belum mendapatkan tunjangan profesi guru." 
+        "Pembayaran honor": "Pembayaran honor dapat digunakan paling banyak 50% dari keseluruhan jumlah alokasi Dana BOS Reguler yang diterima oleh Satuan Pendidikan. Pembayaran honor dapat diberikan kepada guru berstatus bukan aparatur sipil negara, tercatat pada Dapodik, memiliki nomor unik pendidik dan tenaga kependidikan, dan belum mendapatkan tunjangan profesi guru.",
     }
-    
+
     # Display the description in the label
-    description_label.config(text=descriptions.get(selected_option, "No description available"))
-
-
+    description_label.config(
+        text=descriptions.get(selected_option, "No description available")
+    )
 
 
 window = tkinter.Tk()
@@ -110,17 +116,17 @@ frame.pack()
 
 # Username beserta pengeluaran dan nomor_resi
 user_info_frame = tkinter.LabelFrame(frame, text=username)
-user_info_frame.grid(row=0 , column=0, padx=20, pady=10)
+user_info_frame.grid(row=0, column=0, padx=20, pady=10)
 
 pengeluaran_label = tkinter.Label(user_info_frame, text="Jumlah Pengeluaran")
-pengeluaran_label.grid(row= 0, column=0)
+pengeluaran_label.grid(row=0, column=0)
 nomor_resi_label = tkinter.Label(user_info_frame, text="Nomor Resi")
 nomor_resi_label.grid(row=0, column=1)
 
 ## Creates a entry box for the labels within the frame
 pengeluaran_entry = tkinter.Entry(user_info_frame)
 nomor_resi_entry = tkinter.Entry(user_info_frame)
-pengeluaran_entry.grid(row= 1, column=0)
+pengeluaran_entry.grid(row=1, column=0)
 nomor_resi_entry.grid(row=1, column=1)
 
 # Creates an entry for date
@@ -140,39 +146,43 @@ for widget in user_info_frame.winfo_children():
 
 for child in user_info_frame.winfo_children():
     if isinstance(child, tkinter.Entry):
-       child.config(width=(25))
-
+        child.config(width=(25))
 
 
 komponen_dana_bos_frame = tkinter.LabelFrame(frame)
 komponen_dana_bos_frame.grid(row=1, column=0, padx=20, pady=10)
 
-komponen_dana_bos_label = tkinter.Label(komponen_dana_bos_frame, text="Komponen Dana Boss")
+komponen_dana_bos_label = tkinter.Label(
+    komponen_dana_bos_frame, text="Komponen Dana Boss"
+)
 komponen_dana_bos_label.grid(row=0, column=0)
 
-komponens = ["Penerimaan Peserta Didik baru",
-             "Pengembangan perpustakaan",
-             "Pelaksanaan kegiatan pembelajaran dan ekstrakurikuler",
-             "Pelaksanaan kegiatan asesmen dan evaluasi pembelajaran",
-             "Pelaksanaan administrasi kegiatan sekolah",
-             "Pengembangan profesi guru dan tenaga kependidikan",
-             "Pembiayaan langganan daya dan jasa",
-             "Pemeliharaan sarana dan prasarana sekolah",
-             "Penyediaan alat multimedia pembelajaran",
-             "Penyelenggaraan kegiatan peningkatan kompetensi keahlian",
-             "Penyelenggaraan kegiatan dalam mendukung keterserapan lulusan",
-             "Pembayaran honor"
-             ]
+komponens = [
+    "Penerimaan Peserta Didik baru",
+    "Pengembangan perpustakaan",
+    "Pelaksanaan kegiatan pembelajaran dan ekstrakurikuler",
+    "Pelaksanaan kegiatan asesmen dan evaluasi pembelajaran",
+    "Pelaksanaan administrasi kegiatan sekolah",
+    "Pengembangan profesi guru dan tenaga kependidikan",
+    "Pembiayaan langganan daya dan jasa",
+    "Pemeliharaan sarana dan prasarana sekolah",
+    "Penyediaan alat multimedia pembelajaran",
+    "Penyelenggaraan kegiatan peningkatan kompetensi keahlian",
+    "Penyelenggaraan kegiatan dalam mendukung keterserapan lulusan",
+    "Pembayaran honor",
+]
 selected_option = tkinter.StringVar()
-komponen_dana_bos_combobox = ttk.Combobox(komponen_dana_bos_frame,
-                                          textvariable=selected_option,
-                                          values=komponens,
-                                          width=60
-                                          )
+komponen_dana_bos_combobox = ttk.Combobox(
+    komponen_dana_bos_frame, textvariable=selected_option, values=komponens, width=60
+)
 komponen_dana_bos_combobox.grid(row=1, column=0)
 
 
-description_label = tkinter.Label(komponen_dana_bos_frame, text="Select an option to see its description", wraplength=400)
+description_label = tkinter.Label(
+    komponen_dana_bos_frame,
+    text="Select an option to see its description",
+    wraplength=400,
+)
 description_label.grid(row=2, column=0, sticky="news")
 # Bind the function to the Combobox selection event
 komponen_dana_bos_combobox.bind("<<ComboboxSelected>>", show_description)
@@ -186,8 +196,8 @@ keterangan_frame.grid(row=3, column=0, padx=20, pady=10)
 
 keterangan_label = tkinter.Label(keterangan_frame, text="Keterangan")
 keterangan_entry = tkinter.Entry(keterangan_frame, width=60)
-keterangan_label.grid(row=0, column=0, padx= 10, pady=5)
-keterangan_entry.grid(row=1, column=0, padx= 20, pady=5)
+keterangan_label.grid(row=0, column=0, padx=10, pady=5)
+keterangan_entry.grid(row=1, column=0, padx=20, pady=5)
 
 # Button
 button_enter = tkinter.Button(frame, text="Enter Data", command=enter_data)
@@ -199,3 +209,4 @@ button_table.grid(row=5, column=0, sticky="news", padx=20)
 all_frames = [frame, user_info_frame, keterangan_frame, komponen_dana_bos_frame]
 
 window.mainloop()
+
